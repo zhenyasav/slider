@@ -15,7 +15,8 @@ Package.onUse(function(api) {
 	api.use([
 		'coffeescript',
 		'less',
-		'templating']);
+		'templating',
+		'underscore']);
 
 	api.addFiles([
 
