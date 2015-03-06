@@ -22,7 +22,9 @@ class @Slider
 
 		removeClass: (e, c) -> e?.classList?.remove c
 
-		transform: (el, xform) -> el?.style?.transform = xform
+		transform: (el, xform) ->
+			style = el?.style
+			style.transform = style.WebkitTransform = style.msTransform = xform
 
 		clamp: (v, min, max) -> 
 			v = min if min? and v < min
