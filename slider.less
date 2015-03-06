@@ -26,24 +26,22 @@
 		padding: 0;
 	}
 
-	
-
 	box-sizing: border-box;
 	position: relative;
-	margin: 5px;
-	display: inline-block;
+	
 	.user-select(none);
 
 	&.horizontal {
-		width: 300px;
-
+		min-width: @knobSize + 2 * @knobMargin;
 		.track {
 			min-height: @knobSize + 2 * @knobMargin;
 		}
 	}
 	
 	&.vertical {
-		height: 300px;
+		height: 260px;
+		min-height: @knobSize + 2 * @knobMargin;
+		display: inline-block;
 
 		.track {
 			min-width: @knobSize + 2 * @knobMargin;

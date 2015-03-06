@@ -63,8 +63,10 @@ class @Slider
 
 		constructor: (x, y) ->
 			if x instanceof Event
-				@x = if _.isMobile then (x.touches ? x.changedTouches)[0].clientX else x.clientX
-				@y = if _.isMobile then (x.touches ? x.changedTouches)[0].clientY else x.clientY
+				if _.isMobile
+					touches = if x.type is 'touchend' then x.changedTouches else x.touches
+				@x = if _.isMobile then (touches)[0].clientX else x.clientX
+				@y = if _.isMobile then (touches)[0].clientY else x.clientY
 			else
 				@set {x, y}
 
@@ -225,6 +227,7 @@ class @Slider
 
 			window.addEventListener _.moveEvent, (e) =>
 				if start?
+					e.preventDefault()
 					pos = new Vector e
 					offset = pos.subtract start
 					offset = offset.add startOffset
