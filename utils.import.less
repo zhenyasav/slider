@@ -1,0 +1,56 @@
+.pointer-events(@pointer-events) {
+	-webkit-pointer-events: @pointer-events;
+	-moz-pointer-events: @pointer-events;
+	-ms-pointer-events: @pointer-events;
+	-o-pointer-events: @pointer-events;
+	pointer-events: @pointer-events;
+}
+
+.user-select(@arg) {
+	-webkit-user-select: @arg;
+	-moz-user-select: @arg;
+	-ms-user-select: @arg;
+	-o-user-select: @arg;
+	user-select: @arg;
+}
+
+.box-shadow(@arg) {
+	-webkit-box-shadow: @arg;
+	-moz-box-shadow: @arg;
+	-ms-box-shadow: @arg;
+	-o-box-shadow: @arg;
+	box-shadow: @arg;
+}
+
+.transform(@transform) {
+	-webkit-transform: @transform;
+	-moz-transform: @transform;
+	-ms-transform: @transform;
+	-o-transform: @transform;
+	transform: @transform;
+}
+
+.border-radius(@arg) {
+	-webkit-border-radius: @arg;
+	-moz-border-radius: @arg;
+	-ms-border-radius: @arg;
+	-o-border-radius: @arg;
+	border-radius: @arg;
+}
+
+.transition(@arg) {
+	-webkit-transition: @arg;
+	-moz-transition: @arg;
+	-ms-transition: @arg;
+	-o-transition: @arg;
+	transition: @arg;
+}
+
+.gradient(@color1, @color2, @start: 0%, @end: 100%) {
+	background-image: -moz-linear-gradient(top, @color1 @start, @color2 @end); /* FF3.6+ */
+	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(@start,@color1), color-stop(@end,@color2)); /* Chrome,Safari4+ */
+	background-image: -webkit-linear-gradient(top, @color1 @start,@color2 @end); /* Chrome10+,Safari5.1+ */
+	background-image: -o-linear-gradient(top, @color1 @start,@color2 @end); /* Opera 11.10+ */
+	background-image: -ms-linear-gradient(top, @color1 @start,@color2 @end); /* IE10+ */
+	background-image: linear-gradient(to bottom, @color1 @start,@color2 @end); /* W3C */
+}
