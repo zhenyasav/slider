@@ -14,6 +14,8 @@
 
 @gray: mix(#fff, #000, 50%);
 @light: #fff;
+@dark: #000;
+@opacity: 80%;
 @knobSize: 40px;
 @knobMargin: 2px;
 @transition: 350ms;
@@ -77,16 +79,62 @@
 	// LABEL
 	.label {
 		text-align: center;
-		line-height: @knobSize - 2px;
+		background-color: transparent;
+		border-color: transparent;
+		.box-shadow(none);
 		.pointer-events(none);
+
+		.popup {
+			line-height: @knobSize - 2px;
+			text-align: center;
+			position: absolute;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			.transition(all @transition ease-in-out);
+
+			.value {
+				.transition(all @transition ease-in-out);
+			}
+
+			.arrow {
+				@arrow: 5px;
+				border: @arrow solid transparent;
+				border-bottom: none;
+				border-top-color: fade(@dark, @opacity);
+				display: inline-block;
+				position: absolute;
+				left: 50%;
+				bottom: -@arrow+1px;
+				margin-left: -@arrow;
+				opacity: 0;
+				.transition(all @transition ease-in-out);
+			}
+		}
+	}
+
+
+
+	&.dragging .label.popup {
+		.popup {
+			.transform(translate3d(0, -@knobSize - 2*@knobMargin, 0));
+			.value {
+				background-color: fade(@dark, @opacity);
+				color: @light;
+			}
+			.arrow {
+				opacity: 1;
+			}
+		}
 	}
 
 
 	// ======================== STYLES 
 
 	.track, 
-	.knob {
-		//border: 1px solid @gray;
+	.knob,
+	.value {
 		.border-radius(@knobSize);
 	}
 

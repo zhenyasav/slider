@@ -22,6 +22,22 @@ class @Slider
 
 		removeClass: (e, c) -> e?.classList?.remove c
 
+		offset: (e) ->
+			return if e not instanceof Element
+			offset = 
+				x: e.offsetLeft
+				y: e.offsetTop
+
+			parent = e.offsetParent
+
+			while parent?
+				offset.x += parent.offsetLeft
+				offset.y += parent.offsetTop
+				parent = parent.offsetParent
+
+			offset
+
+
 		transform: (el, xform) ->
 			style = el?.style
 			style.transform = style.WebkitTransform = style.msTransform = xform
@@ -40,7 +56,7 @@ class @Slider
 				attr = {}
 				last = args[args.length - 1]
 				if last instanceof Element or _.isArray last
-					content = args.splice args.length - 1, 1
+					content = args.splice(args.length - 1, 1)?[0]
 				for arg in args
 					for key, val of arg 
 						attr[key] = val
@@ -67,8 +83,8 @@ class @Slider
 			if x instanceof Event
 				if _.isMobile
 					touches = if x.type is 'touchend' then x.changedTouches else x.touches
-				@x = if _.isMobile then (touches)[0].clientX else x.clientX
-				@y = if _.isMobile then (touches)[0].clientY else x.clientY
+				@x = if _.isMobile then (touches)[0].pageX else x.pageX
+				@y = if _.isMobile then (touches)[0].pageY else x.pageY
 			else
 				@set {x, y}
 
@@ -96,11 +112,12 @@ class @Slider
 		positionInvalid: 'slider position must be between 0 and 1'
 
 	@defaults:
+		min: 0
+		max: 1
+		initial: 0
 		warnings: true
 		orientation: 'horizontal'
 		transitionDuration: 350
-		min: 0
-		max: 1
 
 	@instances: []
 
@@ -123,32 +140,44 @@ class @Slider
 		_.addClass @element, 'slider'
 		_.addClass @element, @options.orientation
 
-		@relativePosition = 0
-	
 		for component, ctor of Slider.components
 			@[component] = new ctor @, @options[component]
 
-	value: (v, options) ->
-		return @relativePosition * (@options.max - @options.min) + @options.min if not arguments?.length
+		@value @options.initial
 
-		if not (@options.min <= v <= @options.max)
-			@warn Slider.errors.valueInvalid
-			return
-
-		@relativePosition = v / (@options.max - @options.min)
-
-		@[comp]?.position? @relativePosition, options for comp, ctr of Slider.components
+	value: (v, options={}) ->
+		@position v, _.extend options, normalized: false
 
 	position: (p, options) ->
-		return @relativePosition if not arguments?.length
+		if _.isObject p 
+			options = p
 
-		if not (0 <= p <= 1)
-			@warn Slider.errors.positionInvalid
+		defaults = 
+			normalized: true
+			transition: @options.transitionDuration
+
+		options = _.extend {}, defaults, options
+
+		val = if options.normalized
+			(x) -> x 
+		else
+			(x) => @options.min + x * (@options.max - @options.min) 
+
+		return val @normalizedPosition if p is undefined or _.isObject p
+ 
+		if not (val(0) <= p <= val(1))
+			@warn if options.normalized then Slider.errors.positionInvalid else Slider.errors.valueInvalid
 			return
 
-		@relativePosition = p
+		@normalizedPosition = if options.normalized then p else (p - @options.min) / (@options.max - @options.min)
 
-		@[comp]?.position? @relativePosition, options for comp, ctr of Slider.components
+		_.addClass @element, 'transition' if options.transition
+
+		@[comp]?.position? @normalizedPosition, options for comp, ctr of Slider.components
+
+		if options.transition
+			_.delay options.transition, => 
+				_.removeClass @element, 'transition'
 
 
 
@@ -175,15 +204,20 @@ class @Slider
 					start = null
 					if delta < 5
 
-						offset = switch @slider.options.orientation
-							when 'horizontal' then e.offsetX
-							when 'vertical' then e.offsetY
+						trackOffset = _.offset @element
 
-						@slider.position _.clamp (offset - @slider.knob.size() / 2) / @slider.knob.range(), 0, 1
+						dest = switch @slider.options.orientation
+							when 'horizontal' then pos.x - trackOffset.x
+							when 'vertical' then pos.y - trackOffset.y
+
+						@slider.position _.clamp (dest - @slider.knob.size() / 2) / @slider.knob.range(), 0, 1
 
 
 
 	Knob = class @Knob
+
+		@defaults:
+			interactive: true
 
 		size: -> switch @slider.options.orientation 
 			when 'horizontal' then @element.offsetWidth + 2 * @element.offsetLeft
@@ -192,12 +226,6 @@ class @Slider
 		range: -> @slider.track.size() - @size()
 
 		position: (p, options) ->
-			defaults = 
-				transition: true
-			options = _.extend {}, defaults, options
-
-			_.addClass @slider.element, 'transition' if options.transition
-
 			@offset.set switch @slider.options.orientation
 				when 'horizontal'
 					x: @range() * p 
@@ -208,9 +236,6 @@ class @Slider
 
 			_.transform @element, "translate3d(#{@offset.x.toFixed 3}px, #{@offset.y.toFixed 3}px, 0)"
 
-			if options.transition
-				_.delay @slider.options.transitionDuration, => 
-					_.removeClass @slider.element, 'transition'
 
 		constructor: (@slider, options) ->
 			@options = _.extend {}, Knob.defaults ? {}, options ? {}
@@ -219,31 +244,35 @@ class @Slider
 
 			@offset = new Vector 0, 0
 
-			start = null
-			startOffset = null
+			if @options.interactive
 
-			@element.addEventListener _.startEvent, (e) => 
-				start = new Vector e
-				startOffset = @offset.clone()
-				_.removeClass @element, 'transition'
-
-			window.addEventListener _.moveEvent, (e) =>
-				if start?
-					e.preventDefault()
-					pos = new Vector e
-					offset = pos.subtract start
-					offset = offset.add startOffset
-
-					@slider.position switch @slider.options.orientation
-						when 'horizontal'
-							_.clamp offset.x / @range(), 0, 1
-						when 'vertical'
-							_.clamp offset.y / @range(), 0, 1
-
-					, transition: false
-
-			window.addEventListener _.endEvent, (e) =>
 				start = null
+				startOffset = null
+
+				@element.addEventListener _.startEvent, (e) => 
+					start = new Vector e
+					startOffset = @offset.clone()
+					_.removeClass @slider.element, 'transition'
+					_.addClass @slider.element, 'dragging'
+
+				window.addEventListener _.moveEvent, (e) =>
+					if start?
+						e.preventDefault()
+						pos = new Vector e
+						offset = pos.subtract start
+						offset = offset.add startOffset
+
+						@slider.position switch @slider.options.orientation
+							when 'horizontal'
+								_.clamp offset.x / @range(), 0, 1
+							when 'vertical'
+								_.clamp offset.y / @range(), 0, 1
+
+						, transition: false
+
+				window.addEventListener _.endEvent, (e) =>
+					start = null
+					_.removeClass @slider.element, 'dragging'
 
 
 
@@ -252,6 +281,7 @@ class @Slider
 		@defaults: 
 			location: 'knob'
 			precision: 1
+			popup: true
 
 		format: (v) -> 
 			if Math.abs(v) <= 1
@@ -261,17 +291,20 @@ class @Slider
 
 		position: (p, o) ->
 			super p, o
-			@element.innerText = @format @slider.value()
+
+			@value.innerText = @format @slider.value()
 
 		constructor: (@slider, options) ->
-			@options = _.extend {}, Label.defaults, options ? {}
+			super @slider, _.extend {}, Label.defaults, options ? {}, interactive: false
 
-			@slider.element.appendChild @element = _.div class: "label #{@options.location}"
+			_.addClass @element, 'label'
 
-			@offset = new Vector 0, 0
+			_.addClass @element, 'popup' if @options.popup
 
-			@element.innerText = @format @slider.value()
-
+			@element.appendChild @popup = _.div class: 'popup', [
+				@value = _.div class: 'value'
+				_.div class: 'arrow'
+			]
 
 
 	@components:
