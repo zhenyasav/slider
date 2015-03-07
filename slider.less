@@ -118,7 +118,8 @@
 
 	&.dragging .label.popup {
 		.popup {
-			.transform(translate3d(0, -@knobSize - 2*@knobMargin, 0));
+			@scale: 1.5;
+			.transform(translate3d(0, -@scale * @knobSize - @scale * 2 * @knobMargin, 0) scale(@scale, @scale));
 			.value {
 				background-color: fade(@dark, @opacity);
 				color: @light;
