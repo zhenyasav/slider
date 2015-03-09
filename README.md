@@ -25,6 +25,12 @@ var myslider = new Slider("#slider", {
 If a selector is passed in that matches more than one element, the first element will be used.
 
 ### Default options:
-``` js
-
+``` coffee
+Slider.defaults = 
+	min: 0
+	max: 1
+	initial: 0
+	warnings: true
+	orientation: 'horizontal'
+	transitionDuration: 350
 ```
