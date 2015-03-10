@@ -38,14 +38,89 @@ class @Slider
 			offset
 
 
-		transform: (el, xform) ->
+		transform: (el, x, y) ->
 			style = el?.style
-			style.transform = style.WebkitTransform = style.msTransform = xform
+			{x, y} = x if x instanceof Vector
+
+			style.transform = style.WebkitTransform = style.msTransform = "translate3d(#{x.toFixed 3}px, #{y.toFixed 3}px, 0)"
 
 		clamp: (v, min, max) -> 
 			v = min if min? and v < min
 			v = max if max? and v > max
 			v
+
+		roundTo: (n, d) -> d * Math.round n / d
+
+		sign: (n) ->
+			return 0 if typeof n isnt 'number' or isNaN(n) or not isFinite(n)
+			if n >= 0 then 1 else -1
+
+		fixFPError: (n) ->
+			str = String n
+			if /\..*00000\d$/i.test str
+				Number str.substring 0, str.length-1
+			else if /\..*99999\d$/i.test str
+				r = Number str.substring str.length-1, 1
+				p = str.indexOf '.'
+				p = p - str.length
+				n + (10-r) * 10**p
+			else
+				n
+
+		format: (n, options) ->
+
+			defaults = 
+				inf: "&#8734;"
+				nan: "?"
+				decimalPlaces: 2
+				separator: ''
+
+			options = _.extend {}, defaults, options ? {}
+
+			return n if typeof n isnt 'number' 
+			return "?" if isNaN n
+			return "&#8734;" if not isFinite n
+
+			order = if n isnt 0 then Math.floor Math.log10 Math.abs n else 0
+
+			
+			units = (order, suffix) -> 
+				(x) ->
+					number = _.sign(x) * Math.round(Math.abs(x) / 10**(order - options.decimalPlaces)) / 10**(options.decimalPlaces)
+					number + options.separator + suffix
+
+			macro = [
+				units 0, ''
+				units 3, 'k'
+				units 6, 'M'
+				units 9, 'G'
+				units 12, 'T'
+				units 15, 'P'
+				units 18, 'E'
+				units 21, 'Z'
+				units 24, 'Y'
+			]
+
+			micro = [
+				units 0, ''
+				units -3, 'm'
+				units -6, 'μ'
+				units -9, 'n'
+				units -12, 'p'
+				units -15, 'f'
+				units -18, 'a'
+				units -21, 'z'
+				units -24, 'y'
+			]
+			
+			order = _.sign(order) * Math.floor Math.abs(order)/3
+			if order >= 0
+				order = _.clamp order, 0, macro.length-1
+				"" + macro[order] n
+			else
+				order = _.clamp order, -micro.length+1, 0
+				"" + micro[-order] n
+
 
 		log: (e) -> 
 			console.log e
@@ -115,6 +190,7 @@ class @Slider
 		min: 0
 		max: 1
 		initial: 0
+		step: 0.01
 		warnings: true
 		orientation: 'horizontal'
 		transitionDuration: 350
@@ -157,6 +233,10 @@ class @Slider
 			transition: @options.transitionDuration
 
 		options = _.extend {}, defaults, options
+
+		if p isnt undefined and @options.step?
+			step = if options.normalized then @options.step / (@options.max - @options.min) else @options.step
+			p = _.fixFPError _.roundTo p, step
 
 		val = if options.normalized
 			(x) -> x 
@@ -234,7 +314,7 @@ class @Slider
 					x: 0
 					y: @range() * p
 
-			_.transform @element, "translate3d(#{@offset.x.toFixed 3}px, #{@offset.y.toFixed 3}px, 0)"
+			_.transform @element, @offset
 
 
 		constructor: (@slider, options) ->
@@ -283,11 +363,7 @@ class @Slider
 			precision: 1
 			popup: true
 
-		format: (v) -> 
-			if Math.abs(v) <= 1
-				v.toFixed @options.precision
-			else
-				v
+		format: (v) -> _.format v, decimalPlaces: @options.precision
 
 		position: (p, o) ->
 			super p, o

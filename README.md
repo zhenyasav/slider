@@ -29,6 +29,7 @@ If a selector is passed in that matches more than one element, the first element
 Slider.defaults = 
 	min: 0
 	max: 1
+	step: 0.01
 	initial: 0
 	warnings: true
 	orientation: 'horizontal'
