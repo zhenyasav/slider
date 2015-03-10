@@ -186,6 +186,22 @@ class @Slider
 		valueInvalid: 'slider value must be between options.min and options.max'
 		positionInvalid: 'slider position must be between 0 and 1'
 
+	@polling: 
+		timeout: null
+		
+		interval: 1931
+		
+		start: -> 
+			if not @timeout?
+				@timeout = setInterval ->
+					Slider.instances.map (slider) -> 
+						if slider.options.poll and not slider.transitioning and not slider.dragging
+							slider.position slider.position()
+				, @interval
+		
+		stop: -> clearInterval(@timeout) if @timeout?
+
+
 	@defaults:
 		min: 0
 		max: 1
@@ -194,6 +210,7 @@ class @Slider
 		warnings: true
 		orientation: 'horizontal'
 		transitionDuration: 350
+		poll: false
 
 	@instances: []
 
@@ -220,6 +237,8 @@ class @Slider
 			@[component] = new ctor @, @options[component]
 
 		@value @options.initial
+
+		Slider.polling.start() if @options.poll
 
 	value: (v, options={}) ->
 		@position v, _.extend options, normalized: false
@@ -271,14 +290,17 @@ class @Slider
 
 		@normalizedPosition = pos
 
-		_.addClass @element, 'transition' if options.transition
+		if options.transition
+			_.addClass @element, 'transition'
+			@transitioning = true
 
 		@[comp]?.position? @normalizedPosition, options for comp, ctr of Slider.components
 
 		if options.transition
 			_.delay options.transition, => 
-				_.removeClass @element, 'transition'
-
+				_.delay 17, =>
+					_.removeClass @element, 'transition'
+					@transitioning = false
 		pos
 
 
@@ -356,6 +378,7 @@ class @Slider
 					startOffset = @offset.clone()
 					_.removeClass @slider.element, 'transition'
 					_.addClass @slider.element, 'dragging'
+					@slider.dragging = true
 
 				window.addEventListener _.moveEvent, (e) =>
 					if start?
@@ -377,6 +400,7 @@ class @Slider
 				window.addEventListener _.endEvent, (e) =>
 					start = null
 					_.removeClass @slider.element, 'dragging'
+					@slider.dragging = false
 					if @slider.options.step?
 						@slider.position @slider.position()
 
