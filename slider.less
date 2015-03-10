@@ -18,6 +18,7 @@
 @opacity: 80%;
 @knobSize: 40px;
 @knobMargin: 2px;
+@knobPadding: 5px;
 @transition: 350ms;
 
 .slider {
@@ -50,6 +51,11 @@
 			height: 100%;
 		}
 	}
+
+	.hidden {
+		opacity: 0;
+		.pointer-events(none);
+	}
 	
 	.track {
 		cursor: pointer;
@@ -57,7 +63,8 @@
 
 	.knob {
 		height: @knobSize;
-		width: @knobSize;
+		min-width: @knobSize;
+		display: inline-block;
 		margin: @knobMargin;
 		position: absolute;
 		left: 0;
@@ -84,14 +91,18 @@
 		.box-shadow(none);
 		.pointer-events(none);
 
+		.value {
+			line-height: @knobSize - 2px - 2 * @knobPadding;
+			padding: @knobPadding;
+		}
+
 		.popup {
-			line-height: @knobSize - 2px;
 			text-align: center;
 			position: absolute;
 			left: 0;
 			top: 0;
-			width: 100%;
-			height: 100%;
+			left: 0;
+			right: 0;
 			.transition(all @transition ease-in-out);
 
 			.value {

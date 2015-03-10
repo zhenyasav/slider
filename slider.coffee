@@ -84,33 +84,33 @@ class @Slider
 			order = if n isnt 0 then Math.floor Math.log10 Math.abs n else 0
 
 			
-			units = (order, suffix) -> 
+			unit = (order, suffix) -> 
 				(x) ->
 					number = _.sign(x) * Math.round(Math.abs(x) / 10**(order - options.decimalPlaces)) / 10**(options.decimalPlaces)
 					number + options.separator + suffix
 
 			macro = [
-				units 0, ''
-				units 3, 'k'
-				units 6, 'M'
-				units 9, 'G'
-				units 12, 'T'
-				units 15, 'P'
-				units 18, 'E'
-				units 21, 'Z'
-				units 24, 'Y'
+				unit 0, ''
+				unit 3, 'k'
+				unit 6, 'M'
+				unit 9, 'G'
+				unit 12, 'T'
+				unit 15, 'P'
+				unit 18, 'E'
+				unit 21, 'Z'
+				unit 24, 'Y'
 			]
 
 			micro = [
-				units 0, ''
-				units -3, 'm'
-				units -6, 'μ'
-				units -9, 'n'
-				units -12, 'p'
-				units -15, 'f'
-				units -18, 'a'
-				units -21, 'z'
-				units -24, 'y'
+				unit 0, ''
+				unit -3, 'm'
+				unit -6, 'μ'
+				unit -9, 'n'
+				unit -12, 'p'
+				unit -15, 'f'
+				unit -18, 'a'
+				unit -21, 'z'
+				unit -24, 'y'
 			]
 			
 			order = _.sign(order) * Math.floor Math.abs(order)/3
@@ -190,7 +190,7 @@ class @Slider
 		min: 0
 		max: 1
 		initial: 0
-		step: 0.01
+		step: 0.1
 		warnings: true
 		orientation: 'horizontal'
 		transitionDuration: 350
@@ -227,29 +227,49 @@ class @Slider
 	position: (p, options) ->
 		if _.isObject p 
 			options = p
+			p = undefined
 
 		defaults = 
 			normalized: true
 			transition: @options.transitionDuration
+			step: @options.step
 
 		options = _.extend {}, defaults, options
 
-		if p isnt undefined and @options.step?
-			step = if options.normalized then @options.step / (@options.max - @options.min) else @options.step
-			p = _.fixFPError _.roundTo p, step
+
+		pos = if p is undefined
+			@normalizedPosition
+		else
+			if options.normalized then p else (p - @options.min) / (@options.max - @options.min)
+	
+		
+		if options.step 
+			step = if options.normalized
+				options.step / (@options.max - @options.min)
+			else 
+				options.step
+		else
+			step = 1 / @knob.range()
+
+		pos = _.fixFPError _.roundTo pos, step
+
 
 		val = if options.normalized
 			(x) -> x 
 		else
 			(x) => @options.min + x * (@options.max - @options.min) 
 
-		return val @normalizedPosition if p is undefined or _.isObject p
+		return val pos if p is undefined
+
  
 		if not (val(0) <= p <= val(1))
-			@warn if options.normalized then Slider.errors.positionInvalid else Slider.errors.valueInvalid
+			@warn if options.normalized
+				Slider.errors.positionInvalid
+			else
+				Slider.errors.valueInvalid
 			return
 
-		@normalizedPosition = if options.normalized then p else (p - @options.min) / (@options.max - @options.min)
+		@normalizedPosition = pos
 
 		_.addClass @element, 'transition' if options.transition
 
@@ -258,6 +278,8 @@ class @Slider
 		if options.transition
 			_.delay options.transition, => 
 				_.removeClass @element, 'transition'
+
+		pos
 
 
 
@@ -348,11 +370,15 @@ class @Slider
 							when 'vertical'
 								_.clamp offset.y / @range(), 0, 1
 
-						, transition: false
+						, 
+							transition: false
+							step: false
 
 				window.addEventListener _.endEvent, (e) =>
 					start = null
 					_.removeClass @slider.element, 'dragging'
+					if @slider.options.step?
+						@slider.position @slider.position()
 
 
 
@@ -368,7 +394,8 @@ class @Slider
 		position: (p, o) ->
 			super p, o
 
-			@value.innerText = @format @slider.value()
+			formatted = @format @slider.value()
+			@value.innerText = @hiddenValue.innerText = formatted
 
 		constructor: (@slider, options) ->
 			super @slider, _.extend {}, Label.defaults, options ? {}, interactive: false
@@ -381,6 +408,8 @@ class @Slider
 				@value = _.div class: 'value'
 				_.div class: 'arrow'
 			]
+
+			@element.appendChild @hiddenValue = _.div class: 'hidden value'
 
 
 	@components:
