@@ -10,6 +10,8 @@ class @Slider
 					first[k] = v
 			first
 
+		map: (o, f) -> f? v, k for k,v of o
+
 		isObject: (o) -> "[object Object]" is Object.prototype.toString.call o
 
 		isArray: (o) -> "[object Array]" is Object.prototype.toString.call o
@@ -67,7 +69,14 @@ class @Slider
 			else
 				n
 
-		format: (n, options) ->
+		formatObject: (v, indent=0) ->
+			_.map v, (val, key) ->
+				val = "\"#{val}\"" if typeof val is 'string'
+				val = "\n" + _.formatObject val, indent+1 if '[object Object]' is Object.prototype.toString.call val
+				"#{if indent then ('  ' for t in [0..indent]).join('') else ''}#{key}: #{val}"
+			.join '\n'
+
+		formatNumber: (n, options) ->
 
 			defaults = 
 				inf: "&#8734;"
@@ -145,6 +154,7 @@ class @Slider
 
 
 	_.div = _.tag 'div'
+	_.pre = _.tag 'pre'
 
 	[_.startEvent, _.moveEvent, _.endEvent] = if _.isMobile
 		['touchstart', 'touchmove', 'touchend'] 
@@ -251,7 +261,7 @@ class @Slider
 		defaults = 
 			normalized: true
 			transition: @options.transitionDuration
-			step: @options.step
+			step: if options?.normalized is false then @options.step else @options.step / (@options.max - @options.min)
 
 		options = _.extend {}, defaults, options
 
@@ -413,14 +423,16 @@ class @Slider
 			location: 'knob'
 			precision: 1
 			popup: true
-
-		format: (v) -> _.format v, decimalPlaces: @options.precision
+			format: (v, options) -> _.formatNumber v, decimalPlaces: options.precision
 
 		position: (p, o) ->
 			super p, o
 
-			formatted = @format @slider.value()
-			@value.innerText = @hiddenValue.innerText = formatted
+			formatted = @options.format? @slider.value(), @options
+
+			@value.innerText = 
+			@hiddenValue.innerText = 
+			@hiddenKnobValue.innerText = formatted
 
 		constructor: (@slider, options) ->
 			super @slider, _.extend {}, Label.defaults, options ? {}, interactive: false
@@ -436,19 +448,24 @@ class @Slider
 
 			@element.appendChild @hiddenValue = _.div class: 'hidden value'
 
+			if @options.location is 'knob'
+				@slider.knob.element.appendChild @hiddenKnobValue = _.div class: 'hidden value'
 
-	# Debug = class @Debug
 
-	# 	position: (p, options) ->
-	# 		@element.innerText = "#{p}, #{@slider.value()}"
+	Debug = class @Debug
 
-	# 	constructor: (@slider, options) ->
-	# 		@slider.element.appendChild @element = _.div class:'debug'
+		position: (p, options) ->
+			@element.innerText = _.formatObject
+				position: p
+				value: @slider.value()
+
+		constructor: (@slider, options) ->
+			@slider.element.appendChild @element = _.pre class:'debug'
 
 	@components:
 		track: @Track
 		knob: @Knob
 		label: @Label
-		# debug: @Debug
+		#debug: @Debug
 
 

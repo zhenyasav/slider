@@ -66,7 +66,10 @@
 		text-align: left;
 		color: #f00;
 		position: absolute;
-		bottom: 100%;
+		top: 100%;
+		margin: 5px;
+		opacity: 0.7;
+		padding: 5px 10px;
 	}
 
 	.knob {
@@ -90,6 +93,11 @@
 		}
 	}
 
+	.value {
+		line-height: @knobSize - 2px - 2 * @knobPadding;
+		padding: @knobPadding;
+	}
+
 
 	// LABEL
 	.label {
@@ -98,11 +106,6 @@
 		border-color: transparent;
 		.box-shadow(none);
 		.pointer-events(none);
-
-		.value {
-			line-height: @knobSize - 2px - 2 * @knobPadding;
-			padding: @knobPadding;
-		}
 
 		.popup {
 			text-align: center;
