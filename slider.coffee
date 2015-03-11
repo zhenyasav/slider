@@ -10,7 +10,21 @@ class @Slider
 					first[k] = v
 			first
 
-		map: (o, f) -> f? v, k for k,v of o
+		map: (o, f) -> 
+			if _.isArray o
+				f? v, k for v, k in o
+			else
+				f? v, k for k, v of o
+
+		find: (o, f) ->
+			if _.isArray o
+				for v, k in o
+					if f? v, k
+						return v
+			else
+				for k, v of o
+					if f? v, k
+						return v
 
 		isObject: (o) -> "[object Object]" is Object.prototype.toString.call o
 
@@ -211,10 +225,11 @@ class @Slider
 
 		trigger: (type, data) ->
 			throw Dispatcher.errors.invalidEventType if typeof type isnt 'string' or not type
-			time = new Date().getTime()
-			data = _.extend data ? {}, {type, time}
-			setTimeout =>
-				listener?.call? @owner, data for listener in @listeners?[type] ? []
+			if @listeners?[type]?.length
+				time = new Date().getTime()
+				data = _.extend data ? {}, {type, time}
+				setTimeout =>
+					listener?.call? @owner, data for listener in @listeners[type]
 
 		on: (type, listener) ->
 			throw Dispatcher.errors.invalidEventType if typeof type isnt 'string' or not type
@@ -236,7 +251,7 @@ class @Slider
 					delete @listeners[type]
 			else
 				if listener
-					_.each @listeners, (listeners) =>
+					_.map @listeners, (listeners) =>
 						index = listeners.indexOf listener
 						listeners.splice index, 1 if index >= 0
 
@@ -282,8 +297,13 @@ class @Slider
 		orientation: 'horizontal'
 		transitionDuration: 350
 		poll: false
+		valueOutput: null
 
 	@instances: []
+
+	@getInstance: (element) ->
+		return null if element not instanceof Element
+		_.find Slider.instances, (i) -> i.element is element
 
 	warn: -> console?.warn?.apply console, arguments if @options.warnings
 
@@ -391,6 +411,7 @@ class @Slider
 					@events.trigger 'transition'
 		pos
 
+
 	Component = class @Component
 
 	Track = class @Track extends Component
@@ -430,6 +451,7 @@ class @Slider
 
 		@defaults:
 			interactive: true
+			dragEvents: true
 
 		size: -> switch @slider.options.orientation 
 			when 'horizontal' then @element.offsetWidth + 2 * @element.offsetLeft
@@ -485,6 +507,11 @@ class @Slider
 							transition: false
 							step: false
 							changeEvent: false
+
+						if @options.dragEvents
+							@slider.events.trigger 'drag',
+								position: @slider.position()
+								value: @slider.value()
 
 				window.addEventListener _.endEvent, (e) =>
 					if start?
