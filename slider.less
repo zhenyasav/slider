@@ -59,6 +59,38 @@
 	
 	.track {
 		cursor: pointer;
+		overflow: hidden;
+	}
+
+	.fill {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		margin: @knobMargin;
+		.transition(all @transition ease-in-out);
+
+
+	}
+
+	&.dragging {
+		.fill {
+			.transition(none);
+		}
+	}
+
+	&.fill-lower {
+		.fill {
+			left: 0;
+			.border-radius(@knobSize 0 0 @knobSize);
+
+		}
+	}
+
+	&.fill-upper {
+		.fill {
+			right: 0;
+			.border-radius(0 @knobSize @knobSize 0);
+		}
 	}
 
 	.debug {
@@ -164,6 +196,7 @@
 	
 	@color: @light;
 	@shade: 20%;
+	@fill: @blue;
 
 	.track, .knob {
 		border: 1px solid darken(@color, 2*@shade);
@@ -171,8 +204,12 @@
 	}
 
 	.track {
-		
 		.box-shadow(inset 0px 2px 10px darken(@color, @shade));
+	}
+
+	.fill {
+		background-color: @fill;
+		.box-shadow(inset 0px 2px 10px darken(@fill, 10%));
 	}
 
 	.knob {

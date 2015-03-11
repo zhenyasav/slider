@@ -243,8 +243,9 @@ class @Slider
 		_.addClass @element, 'slider'
 		_.addClass @element, @options.orientation
 
-		for component, ctor of Slider.components
-			@[component] = new ctor @, @options[component]
+		for component, generator of Slider.components
+			if ctor = generator @options
+				@[component] = new ctor @, @options[component]
 
 		@value @options.initial
 
@@ -313,9 +314,9 @@ class @Slider
 					@transitioning = false
 		pos
 
+	Component = class @Component
 
-
-	Track = class @Track
+	Track = class @Track extends Component
 
 		size: -> switch @slider.options.orientation
 			when 'horizontal' then @element.offsetWidth
@@ -348,7 +349,7 @@ class @Slider
 
 
 
-	Knob = class @Knob
+	Knob = class @Knob extends Component
 
 		@defaults:
 			interactive: true
@@ -451,8 +452,26 @@ class @Slider
 			if @options.location is 'knob'
 				@slider.knob.element.appendChild @hiddenKnobValue = _.div class: 'hidden value'
 
+	Fill = class @Fill extends Component
 
-	Debug = class @Debug
+		@defaults: null
+
+		position: (p, options) ->
+			if @options is 'upper'
+				p = 1 - p
+
+			@element.style.width = p * @slider.knob.range() + @slider.knob.size() / 2 + 'px'
+			
+
+		constructor: (@slider, options) ->
+			@options = options ? Fill.defaults
+
+			_.addClass @slider.element, "fill-" + @options
+
+			@slider.track.element.appendChild @element = _.div class: 'fill'
+
+
+	Debug = class @Debug extends Component
 
 		position: (p, options) ->
 			@element.innerText = _.formatObject
@@ -462,10 +481,12 @@ class @Slider
 		constructor: (@slider, options) ->
 			@slider.element.appendChild @element = _.pre class:'debug'
 
+
 	@components:
-		track: @Track
-		knob: @Knob
-		label: @Label
-		#debug: @Debug
+		track: -> Track
+		knob: -> Knob
+		label: -> Label
+		fill: (o) -> Fill if o.fill?
+		#debug: -> Debug
 
 
