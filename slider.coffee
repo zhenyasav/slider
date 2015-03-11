@@ -60,10 +60,10 @@ class @Slider
 			if /\..*00000\d$/i.test str
 				Number str.substring 0, str.length-1
 			else if /\..*99999\d$/i.test str
-				r = Number str.substring str.length-1, 1
+				r = Number str[str.length-1]
 				p = str.indexOf '.'
-				p = p - str.length
-				n + (10-r) * 10**p
+				p = p - str.length + 1
+				n + (_.sign n) * (10-r) * 10**p
 			else
 				n
 
@@ -263,7 +263,7 @@ class @Slider
 	
 		
 		if options.step 
-			step = if options.normalized
+			step = if not options.normalized
 				options.step / (@options.max - @options.min)
 			else 
 				options.step
@@ -278,7 +278,7 @@ class @Slider
 		else
 			(x) => @options.min + x * (@options.max - @options.min) 
 
-		return val pos if p is undefined
+		return _.fixFPError val pos if p is undefined
 
  
 		if not (val(0) <= p <= val(1))
@@ -398,11 +398,12 @@ class @Slider
 							step: false
 
 				window.addEventListener _.endEvent, (e) =>
-					start = null
-					_.removeClass @slider.element, 'dragging'
-					@slider.dragging = false
-					if @slider.options.step?
-						@slider.position @slider.position()
+					if start?
+						start = null
+						_.removeClass @slider.element, 'dragging'
+						@slider.dragging = false
+						if @slider.options.step?
+							@slider.position @slider.position()
 
 
 
@@ -436,9 +437,18 @@ class @Slider
 			@element.appendChild @hiddenValue = _.div class: 'hidden value'
 
 
+	# Debug = class @Debug
+
+	# 	position: (p, options) ->
+	# 		@element.innerText = "#{p}, #{@slider.value()}"
+
+	# 	constructor: (@slider, options) ->
+	# 		@slider.element.appendChild @element = _.div class:'debug'
+
 	@components:
 		track: @Track
 		knob: @Knob
 		label: @Label
+		# debug: @Debug
 
 
