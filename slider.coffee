@@ -20,6 +20,16 @@ class @Slider
 
 		delay: (d, f) -> setTimeout f, d
 
+		throttle: (fun, d, ctx) ->
+			tmout = null
+			-> 
+				if tmout
+					clearTimeout tmout
+				args = (k for k in arguments)
+				tmout = setTimeout -> 
+					fun?.apply? (ctx ? @), args
+				, d
+
 		addClass: (e, c) -> e?.classList?.add c
 
 		removeClass: (e, c) -> e?.classList?.remove c
@@ -190,6 +200,57 @@ class @Slider
 			@y = _.clamp @y, r?.y?[0], r?.y?[1]
 
 
+	Dispatcher = class @Dispatcher
+
+		@errors:
+			invalidEventType: 'event type must be a non-empty string'
+			invalidListener: 'event listener must be a function'
+
+		constructor: (@owner) ->
+			@listeners = {}
+
+		trigger: (type, data) ->
+			throw Dispatcher.errors.invalidEventType if typeof type isnt 'string' or not type
+			time = new Date().getTime()
+			data = _.extend data ? {}, {type, time}
+			setTimeout =>
+				listener?.call? @owner, data for listener in @listeners?[type] ? []
+
+		on: (type, listener) ->
+			throw Dispatcher.errors.invalidEventType if typeof type isnt 'string' or not type
+			throw Dispatcher.errors.invalidListener if typeof listener isnt 'function'
+			@listeners[type] ?= []
+			if 0 > @listeners[type].indexOf listener
+				@listeners[type].push listener
+
+		off: (type, listener) ->
+			if typeof type is 'function'
+				listener = type
+				type = undefined
+
+			if type
+				if listener
+					index = @listeners[type].indexOf listener
+					@listeners[type].splice index, 1 if index >= 0
+				else
+					delete @listeners[type]
+			else
+				if listener
+					_.each @listeners, (listeners) =>
+						index = listeners.indexOf listener
+						listeners.splice index, 1 if index >= 0
+
+		once: (type, listener) ->
+			throw Dispatcher.errors.invalidEventType if typeof type isnt 'string' or not type
+			throw Dispatcher.errors.invalidListener if typeof listener isnt 'function'
+			once = (listener) =>
+				harness = (data) =>
+					@off type, harness
+					listener?.call? @owner, data
+			@on type, once listener
+
+
+
 	@errors:
 		selectorEmpty: 'slider element selector must return at least one element'
 		elementInvalid: 'slider first argument must be a selector or an element'
@@ -240,6 +301,8 @@ class @Slider
 
 		Slider.instances?.push? @
 
+		@events = new Dispatcher @
+
 		_.addClass @element, 'slider'
 		_.addClass @element, @options.orientation
 
@@ -250,6 +313,16 @@ class @Slider
 		@value @options.initial
 
 		Slider.polling.start() if @options.poll
+
+		window.addEventListener 'resize', _.throttle =>
+			@refresh()
+		, 600
+
+	refresh: ->
+		if @transitioning
+			@events.once 'transition', => @position @position()
+		else
+			@position @position()
 
 	value: (v, options={}) ->
 		@position v, _.extend options, normalized: false
@@ -262,6 +335,7 @@ class @Slider
 		defaults = 
 			normalized: true
 			transition: @options.transitionDuration
+			changeEvent: true
 			step: if options?.normalized is false then @options.step else @options.step / (@options.max - @options.min)
 
 		options = _.extend {}, defaults, options
@@ -307,11 +381,14 @@ class @Slider
 
 		@[comp]?.position? @normalizedPosition, options for comp, ctr of Slider.components
 
+		@events.trigger 'change', value: @value() if options.changeEvent
+
 		if options.transition
 			_.delay options.transition, => 
 				_.delay 17, =>
 					_.removeClass @element, 'transition'
 					@transitioning = false
+					@events.trigger 'transition'
 		pos
 
 	Component = class @Component
@@ -407,6 +484,7 @@ class @Slider
 						, 
 							transition: false
 							step: false
+							changeEvent: false
 
 				window.addEventListener _.endEvent, (e) =>
 					if start?
@@ -415,6 +493,9 @@ class @Slider
 						@slider.dragging = false
 						if @slider.options.step?
 							@slider.position @slider.position()
+						else
+							@slider.events.trigger 'change'
+							@slider.events.trigger 'transition'
 
 
 
@@ -487,6 +568,6 @@ class @Slider
 		knob: -> Knob
 		label: -> Label
 		fill: (o) -> Fill if o.fill?
-		#debug: -> Debug
+		debug: (o) -> Debug if o.debug
 
 
