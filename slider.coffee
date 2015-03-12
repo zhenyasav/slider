@@ -268,9 +268,10 @@ class @Slider
 
 	@errors:
 		selectorEmpty: 'slider element selector must return at least one element'
-		elementInvalid: 'slider first argument must be a selector or an element'
+		elementInvalid: 'first argument must be a selector or an element'
 		valueInvalid: 'slider value must be between options.min and options.max'
 		positionInvalid: 'slider position must be between 0 and 1'
+
 
 	@polling: 
 		timeout: null
@@ -297,7 +298,7 @@ class @Slider
 		orientation: 'horizontal'
 		transitionDuration: 350
 		poll: false
-		valueOutput: null
+		formElement: null
 
 	@instances: []
 
@@ -311,9 +312,8 @@ class @Slider
 		@options = _.extend {}, Slider.defaults, options ? {}
 
 		if typeof element is 'string'
-			r = document.querySelectorAll element
-			throw Slider.errors.selectorEmpty if not r.length
-			@element = r[0]
+			@element = document.querySelectorAll element
+			throw Slider.errors.selectorEmpty if not @element
 		else if element instanceof Element
 			@element = element
 		else
@@ -322,6 +322,20 @@ class @Slider
 		Slider.instances?.push? @
 
 		@events = new Dispatcher @
+
+		@onFormElementChange = (e) =>
+			val = e?.target?.value
+			if val?
+				val = Number val
+				if isFinite(val) and not isNaN(val)
+					ok = @value val, updateFormElement: false
+					if not ok?
+						e?.target?.value = @value()
+				else
+					@warn Slider.errors.valueInvalid
+					e?.target?.value = @value()
+
+		@bindFormElement @options.formElement if @options.formElement
 
 		_.addClass @element, 'slider'
 		_.addClass @element, @options.orientation
@@ -339,10 +353,34 @@ class @Slider
 		, 600
 
 	refresh: ->
+		refresh = =>
+			@position @position(),
+				changeEvent: false
+				transitionEvent: false
+
 		if @transitioning
-			@events.once 'transition', => @position @position()
+			@events.once 'transition', => refresh
 		else
-			@position @position()
+			refresh()
+
+	bindFormElement: (element, options) ->
+		defaults = 
+			unbindOldElement: true
+
+		options = _.extend {}, defaults, options
+
+		if typeof element is 'string'
+			element = document.querySelector element
+			throw Slider.errors.selectorEmpty if not element
+		else if element not instanceof Element
+			throw Slider.errors.elementInvalid
+
+		if options.unbindOldElement and @formElement and @onFormElementChange
+			@formElement.removeEventListener 'change', @onFormElementChange
+
+		element.addEventListener 'change', @onFormElementChange
+
+		@formElement = element
 
 	value: (v, options={}) ->
 		@position v, _.extend options, normalized: false
@@ -356,9 +394,12 @@ class @Slider
 			normalized: true
 			transition: @options.transitionDuration
 			changeEvent: true
+			transitionEvent: true
 			step: if options?.normalized is false then @options.step else @options.step / (@options.max - @options.min)
+			updateFormElement: true
 
 		options = _.extend {}, defaults, options
+
 
 
 		pos = if p is undefined
@@ -401,6 +442,8 @@ class @Slider
 
 		@[comp]?.position? @normalizedPosition, options for comp, ctr of Slider.components
 
+		@formElement?.value = @value() if options.updateFormElement
+
 		@events.trigger 'change', value: @value() if options.changeEvent
 
 		if options.transition
@@ -408,7 +451,7 @@ class @Slider
 				_.delay 17, =>
 					_.removeClass @element, 'transition'
 					@transitioning = false
-					@events.trigger 'transition'
+					@events.trigger 'transition' if options.transitionEvent
 		pos
 
 
@@ -559,6 +602,8 @@ class @Slider
 
 			if @options.location is 'knob'
 				@slider.knob.element.appendChild @hiddenKnobValue = _.div class: 'hidden value'
+
+
 
 	Fill = class @Fill extends Component
 
