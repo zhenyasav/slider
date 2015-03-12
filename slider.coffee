@@ -321,22 +321,6 @@ class @Slider
 
 		Slider.instances?.push? @
 
-		@events = new Dispatcher @
-
-		@onFormElementChange = (e) =>
-			val = e?.target?.value
-			if val?
-				val = Number val
-				if isFinite(val) and not isNaN(val)
-					ok = @value val, updateFormElement: false
-					if not ok?
-						e?.target?.value = @value()
-				else
-					@warn Slider.errors.valueInvalid
-					e?.target?.value = @value()
-
-		@bindFormElement @options.formElement if @options.formElement
-
 		_.addClass @element, 'slider'
 		_.addClass @element, @options.orientation
 
@@ -362,97 +346,6 @@ class @Slider
 			@events.once 'transition', => refresh
 		else
 			refresh()
-
-	bindFormElement: (element, options) ->
-		defaults = 
-			unbindOldElement: true
-
-		options = _.extend {}, defaults, options
-
-		if typeof element is 'string'
-			element = document.querySelector element
-			throw Slider.errors.selectorEmpty if not element
-		else if element not instanceof Element
-			throw Slider.errors.elementInvalid
-
-		if options.unbindOldElement and @formElement and @onFormElementChange
-			@formElement.removeEventListener 'change', @onFormElementChange
-
-		element.addEventListener 'change', @onFormElementChange
-
-		@formElement = element
-
-	value: (v, options={}) ->
-		@position v, _.extend options, normalized: false
-
-	position: (p, options) ->
-		if _.isObject p 
-			options = p
-			p = undefined
-
-		defaults = 
-			normalized: true
-			transition: @options.transitionDuration
-			changeEvent: true
-			transitionEvent: true
-			step: if options?.normalized is false then @options.step else @options.step / (@options.max - @options.min)
-			updateFormElement: true
-
-		options = _.extend {}, defaults, options
-
-
-
-		pos = if p is undefined
-			@normalizedPosition
-		else
-			if options.normalized then p else (p - @options.min) / (@options.max - @options.min)
-	
-		
-		if options.step 
-			step = if not options.normalized
-				options.step / (@options.max - @options.min)
-			else 
-				options.step
-		else
-			step = 1 / @knob.range()
-
-		pos = _.fixFPError _.roundTo pos, step
-
-
-		val = if options.normalized
-			(x) -> x 
-		else
-			(x) => @options.min + x * (@options.max - @options.min) 
-
-		return _.fixFPError val pos if p is undefined
-
- 
-		if not (val(0) <= p <= val(1))
-			@warn if options.normalized
-				Slider.errors.positionInvalid
-			else
-				Slider.errors.valueInvalid
-			return
-
-		@normalizedPosition = pos
-
-		if options.transition
-			_.addClass @element, 'transition'
-			@transitioning = true
-
-		@[comp]?.position? @normalizedPosition, options for comp, ctr of Slider.components
-
-		@formElement?.value = @value() if options.updateFormElement
-
-		@events.trigger 'change', value: @value() if options.changeEvent
-
-		if options.transition
-			_.delay options.transition, => 
-				_.delay 17, =>
-					_.removeClass @element, 'transition'
-					@transitioning = false
-					@events.trigger 'transition' if options.transitionEvent
-		pos
 
 
 	Component = class @Component
@@ -502,7 +395,82 @@ class @Slider
 
 		range: -> @slider.track.size() - @size()
 
+		bindFormElement: (element, options) ->
+			defaults = 
+				unbindOldElement: true
+
+			options = _.extend {}, defaults, options
+
+			if typeof element is 'string'
+				element = document.querySelector element
+				throw Slider.errors.selectorEmpty if not element
+			else if element not instanceof Element
+				throw Slider.errors.elementInvalid
+
+			if options.unbindOldElement and @formElement and @onFormElementChange
+				@formElement.removeEventListener 'change', @onFormElementChange
+
+			element.addEventListener 'change', @onFormElementChange
+
+			@formElement = element
+
+		value: (v, options={}) ->
+			@position v, _.extend options, normalized: false
+
 		position: (p, options) ->
+			if _.isObject p 
+				options = p
+				p = undefined
+
+			defaults = 
+				normalized: true
+				transition: @options.transitionDuration
+				changeEvent: true
+				transitionEvent: true
+				step: if options?.normalized is false then @options.step else @options.step / (@options.max - @options.min)
+				updateFormElement: true
+
+			options = _.extend {}, defaults, options
+
+
+			pos = if p is undefined
+				@normalizedPosition
+			else
+				if options.normalized then p else (p - @options.min) / (@options.max - @options.min)
+		
+			
+			if options.step 
+				step = if not options.normalized
+					options.step / (@options.max - @options.min)
+				else 
+					options.step
+			else
+				step = 1 / @knob.range()
+
+			pos = _.fixFPError _.roundTo pos, step
+
+
+			val = if options.normalized
+				(x) -> x 
+			else
+				(x) => @options.min + x * (@options.max - @options.min) 
+
+			return _.fixFPError val pos if p is undefined
+
+	 
+			if not (val(0) <= p <= val(1))
+				@warn if options.normalized
+					Slider.errors.positionInvalid
+				else
+					Slider.errors.valueInvalid
+				return
+
+			@normalizedPosition = pos
+
+			if options.transition
+				_.addClass @element, 'transition'
+				@transitioning = true
+
 			@offset.set switch @slider.options.orientation
 				when 'horizontal'
 					x: @range() * p 
@@ -513,13 +481,43 @@ class @Slider
 
 			_.transform @element, @offset
 
+			@[comp]?.position? @normalizedPosition, options for comp, ctr of Slider.components
+
+			@formElement?.value = @value() if options.updateFormElement
+
+			@events.trigger 'change', value: @value() if options.changeEvent
+
+			if options.transition
+				_.delay options.transition, => 
+					_.delay 17, =>
+						_.removeClass @element, 'transition'
+						@transitioning = false
+						@events.trigger 'transition' if options.transitionEvent
+			pos
+
 
 		constructor: (@slider, options) ->
 			@options = _.extend {}, Knob.defaults ? {}, options ? {}
 
+			@events = new Dispatcher @
+
 			@slider.element.appendChild @element = _.div class:'knob'
 
 			@offset = new Vector 0, 0
+
+			@onFormElementChange = (e) =>
+				val = e?.target?.value
+				if val?
+					val = Number val
+					if isFinite(val) and not isNaN(val)
+						ok = @value val, updateFormElement: false
+						if not ok?
+							e?.target?.value = @value()
+					else
+						@warn Slider.errors.valueInvalid
+						e?.target?.value = @value()
+
+			@bindFormElement @options.formElement if @options.formElement
 
 			if @options.interactive
 
