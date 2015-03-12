@@ -4,13 +4,6 @@ HTML5 slider component
 
 http://slider.zhenya.co
 
-## Using
-
-Include these in your project:
-
-- slider.coffee or slider.js
-- slider.less or slider.css
-
 ## API
 
 To instantiate a slider, pass a root element and an optional options object to the constructor:
@@ -29,9 +22,11 @@ If a selector is passed in that matches more than one element, the first element
 Slider.defaults = 
 	min: 0
 	max: 1
-	step: 0.01
 	initial: 0
+	step: 0.1
 	warnings: true
 	orientation: 'horizontal'
 	transitionDuration: 350
+	poll: false
+	formElement: null
 ```
