@@ -53,5 +53,5 @@ Each value in this object is a function that takes an options object and is expe
 
 ``` coffee
 slider = new Slider('#slider');
-slider.track // is the slider's track instance
+slider.track # is the slider's track instance
 ```
