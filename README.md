@@ -67,3 +67,15 @@ slider = new Slider '#slider',
 	knob:
 		popup: false
 ```
+
+Adding your own component is easy:
+
+``` coffee
+
+class Widget
+
+	constructor: (@slider, options) ->
+
+Slider.components.widget = (o) -> Widget
+
+```
