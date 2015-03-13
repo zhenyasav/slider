@@ -51,7 +51,7 @@ The slider instantiates child components based on the configuration in `Slider.c
 
 Each value in this object is a function that takes an options object and is expected to return a compnent constructor. If one is returned, the component is instantiated and assigned under the same key to the slider instance. For example:
 
-``` coffee
-slider = new Slider('#slider');
-slider.track # is the slider's track instance
+``` js
+var slider = new Slider('#slider');
+slider.track // is the slider's track instance
 ```
