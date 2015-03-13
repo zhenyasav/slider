@@ -1,17 +1,17 @@
 # Slider
 
-HTML5 slider component
+Mobile-first HTML5 slider component
 
-http://slider.zhenya.co
+Demo at http://slider.zhenya.co
 
 ## Include
 
-- slider.js or slider.min.js
-- slider.css or slider.min.css
+- `slider.js` or `slider.min.js`
+- `slider.css` or `slider.min.css`
 
 ## API
 
-To instantiate a slider, pass a root element and an optional options object to the constructor:
+To instantiate a slider, pass a root element and an optional config object to the constructor:
 
 ``` js
 var myslider = new Slider("#slider", {
@@ -34,4 +34,24 @@ Slider.defaults =
 	transitionDuration: 350
 	poll: false
 	formElement: null
+```
+
+### Components
+
+The slider instantiates child components based on the configuration in `Slider.components`.
+
+``` coffee
+	Slider.components =
+		track: -> Track
+		knob: -> Knob
+		label: -> Label
+		fill: (o) -> Fill if o.fill?
+		debug: (o) -> Debug if o.debug
+```
+
+Each value in this object is a function that takes an options object and is expected to return a compnent constructor. If one is returned, the component is instantiated and assigned under the same key to the slider instance. For example:
+
+``` coffee
+slider = new Slider('#slider');
+slider.track // is the slider's track instance
 ```
