@@ -34,11 +34,18 @@ Slider.defaults =
 	transitionDuration: 350
 	poll: false
 	formElement: null
+	knob:
+		dragEvents: true
+	label:
+		location: 'knob'
+		precision: 1
+		popup: true
+		format: (v, options) -> Slider._.formatNumber v, decimalPlaces: options.precision
 ```
 
-### Components
+### Custom Components
 
-The slider instantiates child components based on the configuration in `Slider.components`.
+The slider instantiates child components based on the configuration in `Slider.components`. The core pieces of slider: the knob, track, and label are components.
 
 ``` coffee
 	Slider.components =
