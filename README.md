@@ -4,6 +4,11 @@ HTML5 slider component
 
 http://slider.zhenya.co
 
+## Include
+
+- slider.js or slider.min.js
+- slider.css or slider.min.css
+
 ## API
 
 To instantiate a slider, pass a root element and an optional options object to the constructor:
