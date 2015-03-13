@@ -20,9 +20,9 @@ Package.onUse(function(api) {
 
 	api.addFiles([
 
-		'utils.import.less',
-		'slider.less',
-		'slider.coffee',
+		'src/utils.import.less',
+		'src/slider.less',
+		'src/slider.coffee',
 
 		'meteor/template.html',
 		'meteor/template.coffee'
