@@ -78,4 +78,14 @@ class Widget
 
 Slider.components.widget = (o) -> Widget
 
+myWidgetSlider = new Slider '#slider',
+	min: 0
+	max: 10
+	widget:
+		widgetOption: true
+
+myWidgetSlider.widget # will return the widget component instance
+
+
+
 ```
