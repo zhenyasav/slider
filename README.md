@@ -55,3 +55,15 @@ Each value in this object is a function that takes an options object and is expe
 var slider = new Slider('#slider');
 slider.track // is the slider's track instance
 ```
+
+The signature of a component constructor is (slider, options) where the options is borrowed from the main slider's options object under the key name of the component. This means you can pass options to components by using the same key as in the component definition.
+
+To disable the knob popup for example:
+
+``` coffee
+slider = new Slider '#slider',
+	min: 0
+	max: 1
+	knob:
+		popup: false
+```
