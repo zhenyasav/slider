@@ -312,7 +312,7 @@ class @Slider
 		@options = _.extend {}, Slider.defaults, options ? {}
 
 		if typeof element is 'string'
-			@element = document.querySelectorAll element
+			@element = document.querySelector element
 			throw Slider.errors.selectorEmpty if not @element
 		else if element instanceof Element
 			@element = element

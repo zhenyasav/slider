@@ -486,7 +486,7 @@
       var component, ctor, generator, ref1, ref2;
       this.options = _.extend({}, Slider.defaults, options != null ? options : {});
       if (typeof element === 'string') {
-        this.element = document.querySelectorAll(element);
+        this.element = document.querySelector(element);
         if (!this.element) {
           throw Slider.errors.selectorEmpty;
         }

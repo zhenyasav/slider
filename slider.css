@@ -1,4 +1,6 @@
 .slider {
+  font-family: "Open Sans", "Droid Sans", sans-serif;
+  font-weight: 300;
   box-sizing: border-box;
   position: relative;
   -webkit-user-select: none;
