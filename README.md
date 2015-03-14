@@ -9,7 +9,7 @@ Demo at http://slider.zhenya.co
 - `slider.js` or `slider.min.js`
 - `slider.css` or `slider.min.css`
 
-## API
+## Vanilla API
 
 To instantiate a slider, pass a root element and an optional config object to the constructor:
 
@@ -21,6 +21,15 @@ var myslider = new Slider("#slider", {
 ```
 
 If a selector is passed in that matches more than one element, the first element will be used.
+
+## Meteor API
+
+Use the template helper `{{>slider}}` to instantiate a slider. The data context of the slider will be assumed to be the options object if and only if there are some keys on that object that are also present on `Slider.defaults`. In other words, if the data context looks like a slider options object, it will be used. 
+
+This makes it easy to pass options to the slider directly from the template:
+```
+{{slider min=0 max=100 step=1}}
+```
 
 ### Default options:
 ``` coffee
