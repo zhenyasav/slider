@@ -21,9 +21,11 @@ This makes it easy to pass options to the slider directly from the template:
 ```
 {{>slider min=0 max=100 step=1 value=foobar}}
 ```
+**Reactive value binding**
+
 In the example above, if there is a key on the data context called `foobar` that returns a numeric value, it will reactively control the value of the slider.
 
-### Default options:
+## Default options:
 ``` coffee
 Slider.defaults = 
 	min: 0	# minimum value
@@ -45,7 +47,14 @@ Slider.defaults =
 		# how to format the numeric value to a string
 ```
 
-### Custom Components
+## Events
+Slider throws three kinds of events on the main DOM element `slider.element`. These are `change`, `drag`, and `transition`. When handling the 'change' event, the current slider value is accessible through the event's `value` property. If receiving a jQuery wrapped event, `event.originalEvent.value`.
+
+`change` is fired immediately when the position changes, before any transitions begin
+`drag` is fired whenever the user moves the knob
+`transition` is fired when the knob is finished transitioning after the knob is released or an animation finishes after calling `slider.position(p)` or `slider.value(v)`
+
+## Custom Components
 The slider instantiates child components based on the configuration in `Slider.components`. The core pieces of slider: the knob, track, and label are also components.
 ``` coffee
 	Slider.components =
