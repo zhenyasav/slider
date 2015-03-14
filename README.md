@@ -71,9 +71,9 @@ Pass a value in the range `options.min .. options.max` to set the slider to a sp
 ## Events
 Slider throws three kinds of events on the main DOM element `slider.element`. These are `change`, `drag`, and `transition`. When handling the `change` event, the current slider value is accessible through the event's `value` property. If receiving a jQuery wrapped event, `event.originalEvent.value`.
 
--`change` is fired immediately when the position changes, before any transitions begin
--`drag` is fired whenever the user moves the knob, `event.value` and `event.position` are available
--`transition` is fired when the knob is finished transitioning after the knob is released or an animation finishes after calling `slider.position(p)` or `slider.value(v)`
+- `change` is fired immediately when the position changes, before any transitions begin
+- `drag` is fired whenever the user moves the knob, `event.value` and `event.position` are available
+- `transition` is fired when the knob is finished transitioning after the knob is released or an animation finishes after calling `slider.position(p)` or `slider.value(v)`
 
 ## Custom Components
 The slider instantiates child components based on the configuration in `Slider.components`. The core pieces of slider: the knob, track, and label are also components.
