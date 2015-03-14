@@ -22,7 +22,7 @@ This makes it easy to pass options to the slider directly from the template:
 {{>slider min=0 max=100 step=1 value=foobar}}
 ```
 
-*Reactive value binding*
+**Reactive value binding**
 In the example above, if there is a key on the data context called `foobar` that returns a numeric value, it will reactively control the value of the slider.
 
 ### Default options:
