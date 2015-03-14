@@ -1,6 +1,5 @@
 # Slider
-Mobile-first HTML5 slider component
-Demo at http://slider.zhenya.co
+Mobile-first HTML5 slider component. Demo at http://slider.zhenya.co
 
 ## Vanilla API
 Include:
@@ -24,31 +23,32 @@ This makes it easy to pass options to the slider directly from the template:
 ```
 
 ### Reactive value binding
-In the example above, if there is a key on the data context called 'foobar' that returns a numeric value, it will reactively control the value of the slider.
+In the example above, if there is a key on the data context called `foobar` that returns a numeric value, it will reactively control the value of the slider.
 
 ### Default options:
 ``` coffee
 Slider.defaults = 
-	min: 0
-	max: 1
-	initial: 0
-	step: 0.1
-	warnings: true
-	orientation: 'horizontal'
-	transitionDuration: 350
-	poll: false
-	formElement: null
+	min: 0	# minimum value
+	max: 1 	# maximum value
+	initial: 0 	# initial value
+	step: 0.1 	# minimum step size
+	warnings: true	# log warnings to the console
+	orientation: 'horizontal'	# can be 'vertical' or 'horizontal'
+	transitionDuration: 350		# animation duration, must be same as in CSS
+	poll: false		# automatically refresh all sliders periodically
+	formElement: null	# connect slider value to a form element via a selector
 	knob:
-		dragEvents: true
+		dragEvents: true	# fire drag events
 	label:
-		location: 'knob'
-		precision: 1
-		popup: true
+		location: 'knob'	# location of label
+		precision: 1 	# how many decimal places
+		popup: true		# does label pop up when dragged
 		format: (v, options) -> Slider._.formatNumber v, decimalPlaces: options.precision
+		# how to format the numeric value to a string
 ```
 
 ### Custom Components
-The slider instantiates child components based on the configuration in `Slider.components`. The core pieces of slider: the knob, track, and label are components.
+The slider instantiates child components based on the configuration in `Slider.components`. The core pieces of slider: the knob, track, and label are also components.
 ``` coffee
 	Slider.components =
 		track: -> Track
@@ -63,11 +63,9 @@ Each value in this object is a function that takes an options object and is expe
 var slider = new Slider('#slider');
 slider.track // is the slider's track instance
 ```
-
 The signature of a component constructor is `(slider, options)` where the options is borrowed from the main slider's options object under the key name of the component. This means you can pass options to components by using the same key as in the component definition.
 
 To disable the knob popup for example:
-
 ``` coffee
 slider = new Slider '#slider',
 	min: 0
@@ -77,9 +75,7 @@ slider = new Slider '#slider',
 ```
 
 Adding your own component is easy:
-
 ``` coffee
-
 class Widget
 
 	constructor: (@slider, options) ->
