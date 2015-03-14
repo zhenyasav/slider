@@ -251,7 +251,7 @@ class @Slider
 	@defaults:
 		min: 0
 		max: 1
-		initial: 0
+		value: 0
 		step: 0.1
 		warnings: true
 		orientation: 'horizontal'
@@ -301,7 +301,7 @@ class @Slider
 			if ctor = generator @options
 				@[component] = new ctor @, @options[component]
 
-		@value @options.initial
+		@value @options.value
 
 		Slider.polling.start() if @options.poll
 

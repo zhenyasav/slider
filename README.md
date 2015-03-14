@@ -21,9 +21,6 @@ This makes it easy to pass options to the slider directly from the template:
 ```
 {{>slider min=0 max=100 step=1 value=foobar}}
 ```
-
-**Reactive value binding**
-
 In the example above, if there is a key on the data context called `foobar` that returns a numeric value, it will reactively control the value of the slider.
 
 ### Default options:
@@ -31,7 +28,7 @@ In the example above, if there is a key on the data context called `foobar` that
 Slider.defaults = 
 	min: 0	# minimum value
 	max: 1 	# maximum value
-	initial: 0 	# initial value
+	value: 0 	# initial value
 	step: 0.1 	# minimum step size
 	warnings: true	# log warnings to the console
 	orientation: 'horizontal'	# can be 'vertical' or 'horizontal'
