@@ -900,10 +900,12 @@
       Fill.defaults = null;
 
       Fill.prototype.position = function(p, options) {
+        var styleProp;
         if (this.options === 'upper') {
           p = 1 - p;
         }
-        return this.element.style.width = p * this.slider.knob.range() + this.slider.knob.size() / 2 + 'px';
+        styleProp = this.slider.options.orientation === 'horizontal' ? 'width' : 'height';
+        return this.element.style[styleProp] = p * this.slider.knob.range() + this.slider.knob.size() / 2 + 'px';
       };
 
       function Fill(slider1, options) {

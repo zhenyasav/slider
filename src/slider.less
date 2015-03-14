@@ -66,12 +66,8 @@
 
 	.fill {
 		position: absolute;
-		top: 0;
-		bottom: 0;
 		margin: @knobMargin;
 		.transition(all @transition ease-in-out);
-
-
 	}
 
 	&.dragging {
@@ -80,18 +76,46 @@
 		}
 	}
 
-	&.fill-lower {
+	&.horizontal {
 		.fill {
-			left: 0;
-			.border-radius(@knobSize 0 0 @knobSize);
+			top: 0;
+			bottom: 0;
+		}
 
+		&.fill-lower {
+			.fill {
+				left: 0;
+				.border-radius(@knobSize 0 0 @knobSize);
+
+			}
+		}
+
+		&.fill-upper {
+			.fill {
+				right: 0;
+				.border-radius(0 @knobSize @knobSize 0);
+			}
 		}
 	}
 
-	&.fill-upper {
+	&.vertical {
 		.fill {
+			left: 0;
 			right: 0;
-			.border-radius(0 @knobSize @knobSize 0);
+		}
+
+		&.fill-lower {
+			.fill {
+				top: 0;
+				.border-radius(@knobSize @knobSize 0 0);
+			}
+		}
+
+		&.fill-upper {
+			.fill {
+				bottom: 0;
+				.border-radius(0 0 @knobSize @knobSize);
+			}
 		}
 	}
 

@@ -43,8 +43,6 @@
 }
 .slider .fill {
   position: absolute;
-  top: 0;
-  bottom: 0;
   margin: 2px;
   -webkit-transition: all 350ms ease-in-out;
   -moz-transition: all 350ms ease-in-out;
@@ -59,7 +57,11 @@
   -o-transition: none;
   transition: none;
 }
-.slider.fill-lower .fill {
+.slider.horizontal .fill {
+  top: 0;
+  bottom: 0;
+}
+.slider.horizontal.fill-lower .fill {
   left: 0;
   -webkit-border-radius: 40px 0 0 40px;
   -moz-border-radius: 40px 0 0 40px;
@@ -67,13 +69,33 @@
   -o-border-radius: 40px 0 0 40px;
   border-radius: 40px 0 0 40px;
 }
-.slider.fill-upper .fill {
+.slider.horizontal.fill-upper .fill {
   right: 0;
   -webkit-border-radius: 0 40px 40px 0;
   -moz-border-radius: 0 40px 40px 0;
   -ms-border-radius: 0 40px 40px 0;
   -o-border-radius: 0 40px 40px 0;
   border-radius: 0 40px 40px 0;
+}
+.slider.vertical .fill {
+  left: 0;
+  right: 0;
+}
+.slider.vertical.fill-lower .fill {
+  top: 0;
+  -webkit-border-radius: 40px 40px 0 0;
+  -moz-border-radius: 40px 40px 0 0;
+  -ms-border-radius: 40px 40px 0 0;
+  -o-border-radius: 40px 40px 0 0;
+  border-radius: 40px 40px 0 0;
+}
+.slider.vertical.fill-upper .fill {
+  bottom: 0;
+  -webkit-border-radius: 0 0 40px 40px;
+  -moz-border-radius: 0 0 40px 40px;
+  -ms-border-radius: 0 0 40px 40px;
+  -o-border-radius: 0 0 40px 40px;
+  border-radius: 0 0 40px 40px;
 }
 .slider .debug {
   font-size: 80%;

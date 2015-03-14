@@ -613,7 +613,10 @@ class @Slider
 			if @options is 'upper'
 				p = 1 - p
 
-			@element.style.width = p * @slider.knob.range() + @slider.knob.size() / 2 + 'px'
+			styleProp = if @slider.options.orientation is 'horizontal' then 'width' else 'height'
+			
+			@element.style[styleProp] = p * @slider.knob.range() + @slider.knob.size() / 2 + 'px'
+			
 			
 
 		constructor: (@slider, options) ->
