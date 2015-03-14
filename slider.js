@@ -4,7 +4,7 @@
     hasProp = {}.hasOwnProperty;
 
   this.Slider = (function() {
-    var Component, Debug, Dispatcher, Fill, Knob, Label, Track, Vector, _, ref;
+    var Component, Debug, Fill, Knob, Label, Track, Vector, _, ref;
 
     _ = Slider._ = {
       extend: function() {
@@ -257,6 +257,20 @@
           });
           return el;
         };
+      },
+      event: function(name, data) {
+        var evt;
+        evt = document.createEvent('Event');
+        evt.initEvent(name, true, true);
+        return _.extend(evt, data != null ? data : {});
+      },
+      listenOnce: function(element, name, listener) {
+        var harness;
+        harness = function(e) {
+          element.removeEventListener(name, harness);
+          return typeof listener === "function" ? listener(e) : void 0;
+        };
+        return element.addEventListener(name, harness);
       }
     };
 
@@ -318,112 +332,6 @@
 
     })();
 
-    Dispatcher = Slider.Dispatcher = (function() {
-      Dispatcher.errors = {
-        invalidEventType: 'event type must be a non-empty string',
-        invalidListener: 'event listener must be a function'
-      };
-
-      function Dispatcher(owner) {
-        this.owner = owner;
-        this.listeners = {};
-      }
-
-      Dispatcher.prototype.trigger = function(type, data) {
-        var ref1, ref2, time;
-        if (typeof type !== 'string' || !type) {
-          throw Dispatcher.errors.invalidEventType;
-        }
-        if ((ref1 = this.listeners) != null ? (ref2 = ref1[type]) != null ? ref2.length : void 0 : void 0) {
-          time = new Date().getTime();
-          data = _.extend(data != null ? data : {}, {
-            type: type,
-            time: time
-          });
-          return setTimeout((function(_this) {
-            return function() {
-              var j, len, listener, ref3, results;
-              ref3 = _this.listeners[type];
-              results = [];
-              for (j = 0, len = ref3.length; j < len; j++) {
-                listener = ref3[j];
-                results.push(listener != null ? typeof listener.call === "function" ? listener.call(_this.owner, data) : void 0 : void 0);
-              }
-              return results;
-            };
-          })(this));
-        }
-      };
-
-      Dispatcher.prototype.on = function(type, listener) {
-        var base;
-        if (typeof type !== 'string' || !type) {
-          throw Dispatcher.errors.invalidEventType;
-        }
-        if (typeof listener !== 'function') {
-          throw Dispatcher.errors.invalidListener;
-        }
-        if ((base = this.listeners)[type] == null) {
-          base[type] = [];
-        }
-        if (0 > this.listeners[type].indexOf(listener)) {
-          return this.listeners[type].push(listener);
-        }
-      };
-
-      Dispatcher.prototype.off = function(type, listener) {
-        var index;
-        if (typeof type === 'function') {
-          listener = type;
-          type = void 0;
-        }
-        if (type) {
-          if (listener) {
-            index = this.listeners[type].indexOf(listener);
-            if (index >= 0) {
-              return this.listeners[type].splice(index, 1);
-            }
-          } else {
-            return delete this.listeners[type];
-          }
-        } else {
-          if (listener) {
-            return _.map(this.listeners, (function(_this) {
-              return function(listeners) {
-                index = listeners.indexOf(listener);
-                if (index >= 0) {
-                  return listeners.splice(index, 1);
-                }
-              };
-            })(this));
-          }
-        }
-      };
-
-      Dispatcher.prototype.once = function(type, listener) {
-        var once;
-        if (typeof type !== 'string' || !type) {
-          throw Dispatcher.errors.invalidEventType;
-        }
-        if (typeof listener !== 'function') {
-          throw Dispatcher.errors.invalidListener;
-        }
-        once = (function(_this) {
-          return function(listener) {
-            var harness;
-            return harness = function(data) {
-              _this.off(type, harness);
-              return listener != null ? typeof listener.call === "function" ? listener.call(_this.owner, data) : void 0 : void 0;
-            };
-          };
-        })(this);
-        return this.on(type, once(listener));
-      };
-
-      return Dispatcher;
-
-    })();
-
     Slider.errors = {
       selectorEmpty: 'slider element selector must return at least one element',
       elementInvalid: 'first argument must be a selector or an element',
@@ -455,7 +363,7 @@
     Slider.defaults = {
       min: 0,
       max: 1,
-      initial: 0,
+      value: 0,
       step: 0.1,
       warnings: true,
       orientation: 'horizontal',
@@ -500,7 +408,6 @@
           ref1.push(this);
         }
       }
-      this.events = new Dispatcher(this);
       this.onFormElementChange = (function(_this) {
         return function(e) {
           var ok, ref2, ref3, ref4, val;
@@ -533,7 +440,7 @@
           this[component] = new ctor(this, this.options[component]);
         }
       }
-      this.value(this.options.initial);
+      this.value(this.options.value);
       if (this.options.poll) {
         Slider.polling.start();
       }
@@ -548,18 +455,15 @@
       var refresh;
       refresh = (function(_this) {
         return function() {
-          return _this.position(_this.position(), {
+          _this.position(_this.position(), {
             changeEvent: false,
             transitionEvent: false
           });
+          return console.log('refreshed');
         };
       })(this);
       if (this.transitioning) {
-        return this.events.once('transition', (function(_this) {
-          return function() {
-            return refresh;
-          };
-        })(this));
+        return _.listenOnce(this.element, 'transition', refresh);
       } else {
         return refresh();
       }
@@ -651,9 +555,9 @@
         }
       }
       if (options.changeEvent) {
-        this.events.trigger('change', {
+        this.element.dispatchEvent(_.event('change', {
           value: this.value()
-        });
+        }));
       }
       if (options.transition) {
         _.delay(options.transition, (function(_this) {
@@ -662,7 +566,7 @@
               _.removeClass(_this.element, 'transition');
               _this.transitioning = false;
               if (options.transitionEvent) {
-                return _this.events.trigger('transition');
+                return _this.element.dispatchEvent(_.event('transition'));
               }
             });
           };
@@ -811,10 +715,10 @@
                   changeEvent: false
                 });
                 if (_this.options.dragEvents) {
-                  return _this.slider.events.trigger('drag', {
+                  return _this.slider.element.dispatchEvent(_.event('drag', {
                     position: _this.slider.position(),
                     value: _this.slider.value()
-                  });
+                  }));
                 }
               }
             };
@@ -828,8 +732,10 @@
                 if (_this.slider.options.step != null) {
                   return _this.slider.position(_this.slider.position());
                 } else {
-                  _this.slider.events.trigger('change');
-                  return _this.slider.events.trigger('transition');
+                  _this.slider.element.dispatchEvent(_.event('change', {
+                    value: _this.slider.value()
+                  }));
+                  return _this.slider.element.dispatchEvent(_.event('transition'));
                 }
               }
             };
