@@ -176,6 +176,17 @@ class @Slider
 				content.map (c) -> el.appendChild c if c instanceof Element
 				el
 
+		event: (name, data) ->
+			evt = document.createEvent 'Event'
+			evt.initEvent name, true, true
+			_.extend evt, data ? {}
+
+		listenOnce: (element, name, listener) ->
+			harness = (e) -> 
+				element.removeEventListener name, harness
+				listener? e
+			element.addEventListener name, harness
+
 
 	_.div = _.tag 'div'
 	_.pre = _.tag 'pre'
@@ -212,58 +223,6 @@ class @Slider
 		clamp: (r) ->
 			@x = _.clamp @x, r?.x?[0], r?.x?[1]
 			@y = _.clamp @y, r?.y?[0], r?.y?[1]
-
-
-	Dispatcher = class @Dispatcher
-
-		@errors:
-			invalidEventType: 'event type must be a non-empty string'
-			invalidListener: 'event listener must be a function'
-
-		constructor: (@owner) ->
-			@listeners = {}
-
-		trigger: (type, data) ->
-			throw Dispatcher.errors.invalidEventType if typeof type isnt 'string' or not type
-			if @listeners?[type]?.length
-				time = new Date().getTime()
-				data = _.extend data ? {}, {type, time}
-				setTimeout =>
-					listener?.call? @owner, data for listener in @listeners[type]
-
-		on: (type, listener) ->
-			throw Dispatcher.errors.invalidEventType if typeof type isnt 'string' or not type
-			throw Dispatcher.errors.invalidListener if typeof listener isnt 'function'
-			@listeners[type] ?= []
-			if 0 > @listeners[type].indexOf listener
-				@listeners[type].push listener
-
-		off: (type, listener) ->
-			if typeof type is 'function'
-				listener = type
-				type = undefined
-
-			if type
-				if listener
-					index = @listeners[type].indexOf listener
-					@listeners[type].splice index, 1 if index >= 0
-				else
-					delete @listeners[type]
-			else
-				if listener
-					_.map @listeners, (listeners) =>
-						index = listeners.indexOf listener
-						listeners.splice index, 1 if index >= 0
-
-		once: (type, listener) ->
-			throw Dispatcher.errors.invalidEventType if typeof type isnt 'string' or not type
-			throw Dispatcher.errors.invalidListener if typeof listener isnt 'function'
-			once = (listener) =>
-				harness = (data) =>
-					@off type, harness
-					listener?.call? @owner, data
-			@on type, once listener
-
 
 
 	@errors:
@@ -321,8 +280,6 @@ class @Slider
 
 		Slider.instances?.push? @
 
-		@events = new Dispatcher @
-
 		@onFormElementChange = (e) =>
 			val = e?.target?.value
 			if val?
@@ -357,9 +314,10 @@ class @Slider
 			@position @position(),
 				changeEvent: false
 				transitionEvent: false
+			console.log 'refreshed'
 
 		if @transitioning
-			@events.once 'transition', => refresh
+			_.listenOnce @element, 'transition', refresh
 		else
 			refresh()
 
@@ -444,14 +402,15 @@ class @Slider
 
 		@formElement?.value = @value() if options.updateFormElement
 
-		@events.trigger 'change', value: @value() if options.changeEvent
+		if options.changeEvent
+			@element.dispatchEvent _.event 'change', value: @value()
 
 		if options.transition
 			_.delay options.transition, => 
 				_.delay 17, =>
 					_.removeClass @element, 'transition'
 					@transitioning = false
-					@events.trigger 'transition' if options.transitionEvent
+					@element.dispatchEvent _.event 'transition' if options.transitionEvent
 		pos
 
 
@@ -552,7 +511,7 @@ class @Slider
 							changeEvent: false
 
 						if @options.dragEvents
-							@slider.events.trigger 'drag',
+							@slider.element.dispatchEvent _.event 'drag',
 								position: @slider.position()
 								value: @slider.value()
 
@@ -564,8 +523,9 @@ class @Slider
 						if @slider.options.step?
 							@slider.position @slider.position()
 						else
-							@slider.events.trigger 'change'
-							@slider.events.trigger 'transition'
+							@slider.element.dispatchEvent _.event 'change',
+								value: @slider.value()
+							@slider.element.dispatchEvent _.event 'transition'
 
 
 
