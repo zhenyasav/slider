@@ -90,3 +90,19 @@ myWidgetSlider = new Slider '#slider',
 
 myWidgetSlider.widget # will return the widget component instance
 ```
+or in JavaScript:
+```
+function Widget(slider, options) {
+	// construct away	
+}
+
+Slider.components.widget = function(o) { return Widget; };
+
+myWidgetSlider = new Slider(#slider, {
+	min: 0,
+	max: 1,
+	widget: {
+		widgetOption: true
+	}
+});
+```
