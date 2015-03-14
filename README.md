@@ -50,10 +50,19 @@ Slider.defaults =
 ## Common API
 
 #### `slider.position(position, options)`
-Pass a numeric argument in the range `0..1` to set the slider to a normalized position.
+Pass a numeric argument in the range `0..1` to set the slider to a normalized position. Pass a second argument to configure specific behaviour of the call. Default values:
+``` coffee
+normalized: true	# if the first argument is in the range 0..1 or options.min..options.max
+transition: @options.transitionDuration 	# pass a falsey value to disable smooth transitions
+changeEvent: true	# whether or not to fire the change event
+transitionEvent: true	# whether or not to fire the transitioned event after the transition
+step: if options?.normalized is false then @options.step else @options.step / (@options.max - @options.min)
+# override step size (this is set to false during dragging for example)
+updateFormElement: true 	# whether or not to update form value after the set 
+```
 
 #### `slider.value(value, options)`
-Pass a value in the range `options.min .. options.max` to set the slider to a specific value.
+Pass a value in the range `options.min .. options.max` to set the slider to a specific value. Options are the same as in `position()`. Equivalent to `slider.position(value, {normalized: false});
 
 ## Events
 Slider throws three kinds of events on the main DOM element `slider.element`. These are `change`, `drag`, and `transition`. When handling the `change` event, the current slider value is accessible through the event's `value` property. If receiving a jQuery wrapped event, `event.originalEvent.value`.
