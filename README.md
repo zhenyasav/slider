@@ -50,6 +50,8 @@ Slider.defaults =
 ## Common API
 
 #### `slider.position(position, options)`
+Call this function with no arguments (or an undefined first argument) to retrieve the current normalized position.
+
 Pass a numeric argument in the range `0..1` to set the slider to a normalized position. Pass a second argument to configure specific behaviour of the call. Default values:
 ``` coffee
 normalized: true	# if the first argument is in the range 0..1 or options.min..options.max
@@ -62,6 +64,8 @@ updateFormElement: true 	# whether or not to update form value after the set
 ```
 
 #### `slider.value(value, options)`
+Call with no arguments to retrieve the current value in the range `options.min..options.max`
+
 Pass a value in the range `options.min .. options.max` to set the slider to a specific value. Options are the same as in `position()`. Equivalent to `slider.position(value, {normalized: false});`
 
 ## Events
