@@ -28,7 +28,7 @@ Use the template helper `{{>slider}}` to instantiate a slider. The data context 
 
 This makes it easy to pass options to the slider directly from the template:
 ```
-{{slider min=0 max=100 step=1}}
+{{>slider min=0 max=100 step=1}}
 ```
 
 ### Default options:
