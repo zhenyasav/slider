@@ -8,6 +8,8 @@ Package.describe({
 
 Package.onUse(function(api) {
 
+	api.versionsFrom('1.0');
+	
 	api.use([
 		'coffeescript',
 		'less',
@@ -24,7 +26,6 @@ Package.onUse(function(api) {
 		'meteor/template.coffee'
 		
 		], 'client');
-
 });
 
 Package.onTest(function(api) {
