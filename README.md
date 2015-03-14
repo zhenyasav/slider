@@ -91,7 +91,7 @@ myWidgetSlider = new Slider '#slider',
 myWidgetSlider.widget # will return the widget component instance
 ```
 or in JavaScript:
-```
+``` js
 function Widget(slider, options) {
 	// construct away	
 }
