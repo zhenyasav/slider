@@ -62,7 +62,7 @@ updateFormElement: true 	# whether or not to update form value after the set
 ```
 
 #### `slider.value(value, options)`
-Pass a value in the range `options.min .. options.max` to set the slider to a specific value. Options are the same as in `position()`. Equivalent to `slider.position(value, {normalized: false});
+Pass a value in the range `options.min .. options.max` to set the slider to a specific value. Options are the same as in `position()`. Equivalent to `slider.position(value, {normalized: false});`
 
 ## Events
 Slider throws three kinds of events on the main DOM element `slider.element`. These are `change`, `drag`, and `transition`. When handling the `change` event, the current slider value is accessible through the event's `value` property. If receiving a jQuery wrapped event, `event.originalEvent.value`.
