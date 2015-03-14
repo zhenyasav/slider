@@ -101,7 +101,4 @@ myWidgetSlider = new Slider '#slider',
 		widgetOption: true
 
 myWidgetSlider.widget # will return the widget component instance
-
-
-
 ```
