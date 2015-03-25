@@ -531,7 +531,7 @@ class @Slider
 
 			defaults = 
 				normalized: true
-				transition: @options.transitionDuration
+				transition: @slider.options.transitionDuration
 				changeEvent: true
 				transitionEvent: true
 				step: if options?.normalized is false then @slider.options.step else @slider.options.step / (@slider.options.max - @slider.options.min)
@@ -575,7 +575,7 @@ class @Slider
 			@label.position @normalizedPosition = pos
 
 			if options.transition
-				_.addClass @element, 'transition'
+				_.addClass @slider.element, 'transition'
 				@transitioning = true
 
 			@offset.set switch @slider.options.orientation
@@ -596,9 +596,9 @@ class @Slider
 			if options.transition
 				_.delay options.transition, => 
 					_.delay 17, =>
-						_.removeClass @element, 'transition'
+						_.removeClass @slider.element, 'transition'
 						@transitioning = false
-						@element.dispatchEvent _.event 'transition' if options.transitionEvent
+						@slider.element.dispatchEvent _.event 'transition' if options.transitionEvent
 			pos
 
 
