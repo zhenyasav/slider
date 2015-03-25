@@ -26,6 +26,25 @@ class @Slider
 					if f? v, k
 						return v
 
+		filter: (o, f) ->
+			if _.isArray o
+				val for val in o when f? val
+			else
+				val for key, val of o when f? val
+
+		min: (o, f) ->
+			minScore = Infinity
+			min = null
+			iterator = (x) ->
+				if minScore > score = f? x
+					min = x
+					minScore = score
+			if _.isArray o
+				iterator x for x in o
+			else
+				iterator v for k, v of o
+			min
+
 		isObject: (o) -> "[object Object]" is Object.prototype.toString.call o
 
 		isArray: (o) -> "[object Array]" is Object.prototype.toString.call o
@@ -176,6 +195,17 @@ class @Slider
 				content.map (c) -> el.appendChild c if c instanceof Element
 				el
 
+		event: (name, data) ->
+			evt = document.createEvent 'Event'
+			evt.initEvent name, true, true
+			_.extend evt, data ? {}
+
+		listenOnce: (element, name, listener) ->
+			harness = (e) -> 
+				element.removeEventListener name, harness
+				listener? e
+			element.addEventListener name, harness
+
 
 	_.div = _.tag 'div'
 	_.pre = _.tag 'pre'
@@ -214,63 +244,13 @@ class @Slider
 			@y = _.clamp @y, r?.y?[0], r?.y?[1]
 
 
-	Dispatcher = class @Dispatcher
-
-		@errors:
-			invalidEventType: 'event type must be a non-empty string'
-			invalidListener: 'event listener must be a function'
-
-		constructor: (@owner) ->
-			@listeners = {}
-
-		trigger: (type, data) ->
-			throw Dispatcher.errors.invalidEventType if typeof type isnt 'string' or not type
-			if @listeners?[type]?.length
-				time = new Date().getTime()
-				data = _.extend data ? {}, {type, time}
-				setTimeout =>
-					listener?.call? @owner, data for listener in @listeners[type]
-
-		on: (type, listener) ->
-			throw Dispatcher.errors.invalidEventType if typeof type isnt 'string' or not type
-			throw Dispatcher.errors.invalidListener if typeof listener isnt 'function'
-			@listeners[type] ?= []
-			if 0 > @listeners[type].indexOf listener
-				@listeners[type].push listener
-
-		off: (type, listener) ->
-			if typeof type is 'function'
-				listener = type
-				type = undefined
-
-			if type
-				if listener
-					index = @listeners[type].indexOf listener
-					@listeners[type].splice index, 1 if index >= 0
-				else
-					delete @listeners[type]
-			else
-				if listener
-					_.map @listeners, (listeners) =>
-						index = listeners.indexOf listener
-						listeners.splice index, 1 if index >= 0
-
-		once: (type, listener) ->
-			throw Dispatcher.errors.invalidEventType if typeof type isnt 'string' or not type
-			throw Dispatcher.errors.invalidListener if typeof listener isnt 'function'
-			once = (listener) =>
-				harness = (data) =>
-					@off type, harness
-					listener?.call? @owner, data
-			@on type, once listener
-
-
-
 	@errors:
 		selectorEmpty: 'slider element selector must return at least one element'
 		elementInvalid: 'first argument must be a selector or an element'
 		valueInvalid: 'slider value must be between options.min and options.max'
 		positionInvalid: 'slider position must be between 0 and 1'
+		scalarRequired: 'single value slider position argument must be a scalar'
+		rangeRequired: 'range slider position argument must be an array of two numbers'
 
 
 	@polling: 
@@ -282,8 +262,7 @@ class @Slider
 			if not @timeout?
 				@timeout = setInterval ->
 					Slider.instances.map (slider) -> 
-						if slider.options.poll and not slider.transitioning and not slider.dragging
-							slider.position slider.position()
+						slider.refresh()
 				, @interval
 		
 		stop: -> clearInterval(@timeout) if @timeout?
@@ -292,13 +271,12 @@ class @Slider
 	@defaults:
 		min: 0
 		max: 1
-		initial: 0
+		value: 0
 		step: 0.1
 		warnings: true
 		orientation: 'horizontal'
 		transitionDuration: 350
 		poll: false
-		formElement: null
 
 	@instances: []
 
@@ -312,7 +290,7 @@ class @Slider
 		@options = _.extend {}, Slider.defaults, options ? {}
 
 		if typeof element is 'string'
-			@element = document.querySelectorAll element
+			@element = document.querySelector element
 			throw Slider.errors.selectorEmpty if not @element
 		else if element instanceof Element
 			@element = element
@@ -325,10 +303,10 @@ class @Slider
 		_.addClass @element, @options.orientation
 
 		for component, generator of Slider.components
-			if ctor = generator @options
+			if typeof (ctor = generator?.call? @, @options) is 'function'
 				@[component] = new ctor @, @options[component]
 
-		@value @options.initial
+		@value @options.value
 
 		Slider.polling.start() if @options.poll
 
@@ -336,16 +314,29 @@ class @Slider
 			@refresh()
 		, 600
 
-	refresh: ->
-		refresh = =>
-			@position @position(),
-				changeEvent: false
-				transitionEvent: false
+	
+	knobs: -> @[name] for name, comp of Slider.components when @[name] instanceof Knob
 
-		if @transitioning
-			@events.once 'transition', => refresh
-		else
-			refresh()
+	refresh: -> @knobs()?.map (knob) -> knob.refresh()
+
+	isSingleValue: -> not @options.value? or typeof @options.value is 'number'
+
+	isRange: -> @options.value?.length is 2
+
+	value: (v, options={}) ->
+		@position v, _.extend options, normalized: false
+
+	position: (p, o) ->
+		if @isSingleValue()
+			throw Slider.errors.scalarRequired if typeof p isnt 'number' 
+			@knob.position p, o
+		else if @isRange()
+			throw Slider.errors.rangeRequired if p?.length isnt 2
+			[
+				@lower.position p[0], o
+				@upper.position p[1], o
+			]
+
 
 
 	Component = class @Component
@@ -379,7 +370,13 @@ class @Slider
 							when 'horizontal' then pos.x - trackOffset.x
 							when 'vertical' then pos.y - trackOffset.y
 
-						@slider.position _.clamp (dest - @slider.knob.size() / 2) / @slider.knob.range(), 0, 1
+						knobs = @slider.knobs()
+
+						dest = _.clamp (dest - knobs?[0]?.size() / 2) / knobs?[0]?.range(), 0, 1
+
+						targetKnob = _.min knobs, (k) -> Math.abs k.position() - dest
+
+						targetKnob?.position? dest
 
 
 
@@ -388,12 +385,92 @@ class @Slider
 		@defaults:
 			interactive: true
 			dragEvents: true
+			formElement: null
+
+		refresh: ->
+			refresh = =>
+				@position @position(),
+					changeEvent: false
+					transitionEvent: false
+
+			if @transitioning
+				_.listenOnce @element, 'transition', refresh
+			else
+				refresh()
 
 		size: -> switch @slider.options.orientation 
 			when 'horizontal' then @element.offsetWidth + 2 * @element.offsetLeft
 			when 'vertical' then @element.offsetHeight + 2 * @element.offsetTop
 
 		range: -> @slider.track.size() - @size()
+
+		constructor: (@slider, options) ->
+			@options = _.extend {}, Knob.defaults ? {}, options ? {}
+
+			@slider.element.appendChild @element = _.div class:'knob'
+
+			@offset = new Vector 0, 0
+
+			@onFormElementChange = (e) =>
+				val = e?.target?.value
+				if val?
+					val = Number val
+					if isFinite(val) and not isNaN(val)
+						ok = @value val, updateFormElement: false
+						if not ok?
+							e?.target?.value = @value()
+					else
+						@warn Slider.errors.valueInvalid
+						e?.target?.value = @value()
+
+			@bindFormElement @options.formElement if @options.formElement
+
+			if @options.interactive
+
+				start = null
+				startOffset = null
+
+				@element.addEventListener _.startEvent, (e) => 
+					start = new Vector e
+					startOffset = @offset.clone()
+					_.removeClass @slider.element, 'transition'
+					_.addClass @slider.element, 'dragging'
+					@slider.dragging = true
+
+				window.addEventListener _.moveEvent, (e) =>
+					if start?
+						e.preventDefault()
+						pos = new Vector e
+						offset = pos.subtract start
+						offset = offset.add startOffset
+
+						@position switch @slider.options.orientation
+							when 'horizontal'
+								_.clamp offset.x / @range(), 0, 1
+							when 'vertical'
+								_.clamp offset.y / @range(), 0, 1
+
+						, 
+							transition: false
+							step: false
+							changeEvent: false
+
+						if @options.dragEvents
+							@slider.element.dispatchEvent _.event 'drag',
+								position: @slider.position()
+								value: @slider.value()
+
+				window.addEventListener _.endEvent, (e) =>
+					if start?
+						start = null
+						_.removeClass @slider.element, 'dragging'
+						@slider.dragging = false
+						if @slider.options.step?
+							@slider.position @slider.position()
+						else
+							@slider.element.dispatchEvent _.event 'change',
+								value: @slider.value()
+							@slider.element.dispatchEvent _.event 'transition'
 
 		bindFormElement: (element, options) ->
 			defaults = 
@@ -431,7 +508,7 @@ class @Slider
 				updateFormElement: true
 
 			options = _.extend {}, defaults, options
-
+			
 
 			pos = if p is undefined
 				@normalizedPosition
@@ -485,85 +562,19 @@ class @Slider
 
 			@formElement?.value = @value() if options.updateFormElement
 
-			@events.trigger 'change', value: @value() if options.changeEvent
+			if options.changeEvent
+				@element.dispatchEvent _.event 'change', value: @value()
 
 			if options.transition
 				_.delay options.transition, => 
 					_.delay 17, =>
 						_.removeClass @element, 'transition'
 						@transitioning = false
-						@events.trigger 'transition' if options.transitionEvent
+						@element.dispatchEvent _.event 'transition' if options.transitionEvent
 			pos
 
 
-		constructor: (@slider, options) ->
-			@options = _.extend {}, Knob.defaults ? {}, options ? {}
-
-			@events = new Dispatcher @
-
-			@slider.element.appendChild @element = _.div class:'knob'
-
-			@offset = new Vector 0, 0
-
-			@onFormElementChange = (e) =>
-				val = e?.target?.value
-				if val?
-					val = Number val
-					if isFinite(val) and not isNaN(val)
-						ok = @value val, updateFormElement: false
-						if not ok?
-							e?.target?.value = @value()
-					else
-						@warn Slider.errors.valueInvalid
-						e?.target?.value = @value()
-
-			@bindFormElement @options.formElement if @options.formElement
-
-			if @options.interactive
-
-				start = null
-				startOffset = null
-
-				@element.addEventListener _.startEvent, (e) => 
-					start = new Vector e
-					startOffset = @offset.clone()
-					_.removeClass @slider.element, 'transition'
-					_.addClass @slider.element, 'dragging'
-					@slider.dragging = true
-
-				window.addEventListener _.moveEvent, (e) =>
-					if start?
-						e.preventDefault()
-						pos = new Vector e
-						offset = pos.subtract start
-						offset = offset.add startOffset
-
-						@slider.position switch @slider.options.orientation
-							when 'horizontal'
-								_.clamp offset.x / @range(), 0, 1
-							when 'vertical'
-								_.clamp offset.y / @range(), 0, 1
-
-						, 
-							transition: false
-							step: false
-							changeEvent: false
-
-						if @options.dragEvents
-							@slider.events.trigger 'drag',
-								position: @slider.position()
-								value: @slider.value()
-
-				window.addEventListener _.endEvent, (e) =>
-					if start?
-						start = null
-						_.removeClass @slider.element, 'dragging'
-						@slider.dragging = false
-						if @slider.options.step?
-							@slider.position @slider.position()
-						else
-							@slider.events.trigger 'change'
-							@slider.events.trigger 'transition'
+		
 
 
 
@@ -611,8 +622,9 @@ class @Slider
 			if @options is 'upper'
 				p = 1 - p
 
-			@element.style.width = p * @slider.knob.range() + @slider.knob.size() / 2 + 'px'
+			styleProp = if @slider.options.orientation is 'horizontal' then 'width' else 'height'
 			
+			@element.style[styleProp] = p * @slider.knob.range() + @slider.knob.size() / 2 + 'px'
 
 		constructor: (@slider, options) ->
 			@options = options ? Fill.defaults
@@ -635,7 +647,9 @@ class @Slider
 
 	@components:
 		track: -> Track
-		knob: -> Knob
+		knob: (o) -> Knob if not o.value? or typeof o.value is 'number'
+		lower: (o) -> Knob if o.value?.length is 2
+		upper: (o) -> Knob if o.value?.length is 2
 		label: -> Label
 		fill: (o) -> Fill if o.fill?
 		debug: (o) -> Debug if o.debug

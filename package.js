@@ -1,17 +1,15 @@
 Package.describe({
 	name: 'zhenya:slider',
-	version: '0.0.1',
-	// Brief, one-line summary of the package.
-	summary: 'Slide smoothly',
-	// URL to the Git repository containing the source code for this package.
-	git: '',
-	// By default, Meteor will default to using README.md for documentation.
-	// To avoid submitting documentation, set this field to null.
+	version: '0.0.3',
+	summary: 'Mobile-first, smooth slider component',
+	git: 'https://github.com/zhenyasav/slider',
 	documentation: 'README.md'
 });
 
 Package.onUse(function(api) {
-	api.versionsFrom('1.0.3.2');
+
+	api.versionsFrom('1.0');
+	
 	api.use([
 		'coffeescript',
 		'less',
@@ -20,16 +18,14 @@ Package.onUse(function(api) {
 
 	api.addFiles([
 
-		'utils.import.less',
-		'slider.less',
-		'slider.coffee',
+		'src/utils.import.less',
+		'src/slider.less',
+		'src/slider.coffee',
 
 		'meteor/template.html',
 		'meteor/template.coffee'
 		
 		], 'client');
-
-
 });
 
 Package.onTest(function(api) {
