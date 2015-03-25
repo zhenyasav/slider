@@ -328,10 +328,10 @@ class @Slider
 
 	position: (p, o) ->
 		if @isSingleValue()
-			throw Slider.errors.scalarRequired if typeof p isnt 'number' 
+			throw Slider.errors.scalarRequired if p? and typeof p isnt 'number' 
 			@knob.position p, o
 		else if @isRange()
-			throw Slider.errors.rangeRequired if p?.length isnt 2
+			throw Slider.errors.rangeRequired if p? and p?.length isnt 2
 			[
 				@lower.position p[0], o
 				@upper.position p[1], o
@@ -339,9 +339,7 @@ class @Slider
 
 
 
-	Component = class @Component
-
-	Track = class @Track extends Component
+	Track = class @Track
 
 		size: -> switch @slider.options.orientation
 			when 'horizontal' then @element.offsetWidth
@@ -380,7 +378,38 @@ class @Slider
 
 
 
-	Knob = class @Knob extends Component
+	Knob = class @Knob
+
+
+		Label = class @Label
+
+			@defaults: 
+				precision: 1
+				popup: true
+				format: (v, options) -> _.formatNumber v, decimalPlaces: options.precision
+
+			position: (p) ->
+				@value.innerText = 
+				@hiddenValue.innerText = 
+				@hiddenKnobValue.innerText = @options.format? @knob.value(), @options
+
+			constructor: (@knob, options) ->
+				@options = _.extend {}, Label.defaults, options
+
+				@knob.element.appendChild @element = _.div class: 'label'
+
+				_.addClass @element, 'popup' if @options.popup
+
+				@element.appendChild @popup = _.div class: 'popup', [
+					@value = _.div class: 'value'
+					_.div class: 'arrow'
+				]
+
+				@element.appendChild @hiddenValue = _.div class: 'hidden value'
+
+				@knob.element.appendChild @hiddenKnobValue = _.div class: 'hidden value'
+
+
 
 		@defaults:
 			interactive: true
@@ -407,9 +436,11 @@ class @Slider
 		constructor: (@slider, options) ->
 			@options = _.extend {}, Knob.defaults ? {}, options ? {}
 
-			@slider.element.appendChild @element = _.div class:'knob'
+			@slider.element.appendChild @element = _.div class: 'knob'
 
 			@offset = new Vector 0, 0
+
+			@label = new Label @, @options?.label
 
 			@onFormElementChange = (e) =>
 				val = e?.target?.value
@@ -425,52 +456,51 @@ class @Slider
 
 			@bindFormElement @options.formElement if @options.formElement
 
-			if @options.interactive
 
-				start = null
-				startOffset = null
+			start = null
+			startOffset = null
 
-				@element.addEventListener _.startEvent, (e) => 
-					start = new Vector e
-					startOffset = @offset.clone()
-					_.removeClass @slider.element, 'transition'
-					_.addClass @slider.element, 'dragging'
-					@slider.dragging = true
+			@element.addEventListener _.startEvent, (e) => 
+				start = new Vector e
+				startOffset = @offset.clone()
+				_.removeClass @slider.element, 'transition'
+				_.addClass @slider.element, 'dragging'
+				@slider.dragging = true
 
-				window.addEventListener _.moveEvent, (e) =>
-					if start?
-						e.preventDefault()
-						pos = new Vector e
-						offset = pos.subtract start
-						offset = offset.add startOffset
+			window.addEventListener _.moveEvent, (e) =>
+				if start?
+					e.preventDefault()
+					pos = new Vector e
+					offset = pos.subtract start
+					offset = offset.add startOffset
 
-						@position switch @slider.options.orientation
-							when 'horizontal'
-								_.clamp offset.x / @range(), 0, 1
-							when 'vertical'
-								_.clamp offset.y / @range(), 0, 1
+					@position switch @slider.options.orientation
+						when 'horizontal'
+							_.clamp offset.x / @range(), 0, 1
+						when 'vertical'
+							_.clamp offset.y / @range(), 0, 1
 
-						, 
-							transition: false
-							step: false
-							changeEvent: false
+					, 
+						transition: false
+						step: false
+						changeEvent: false
 
-						if @options.dragEvents
-							@slider.element.dispatchEvent _.event 'drag',
-								position: @slider.position()
-								value: @slider.value()
+					if @options.dragEvents
+						@slider.element.dispatchEvent _.event 'drag',
+							position: @slider.position()
+							value: @slider.value()
 
-				window.addEventListener _.endEvent, (e) =>
-					if start?
-						start = null
-						_.removeClass @slider.element, 'dragging'
-						@slider.dragging = false
-						if @slider.options.step?
-							@slider.position @slider.position()
-						else
-							@slider.element.dispatchEvent _.event 'change',
-								value: @slider.value()
-							@slider.element.dispatchEvent _.event 'transition'
+			window.addEventListener _.endEvent, (e) =>
+				if start?
+					start = null
+					_.removeClass @slider.element, 'dragging'
+					@slider.dragging = false
+					if @slider.options.step?
+						@slider.position @slider.position()
+					else
+						@slider.element.dispatchEvent _.event 'change',
+							value: @slider.value()
+						@slider.element.dispatchEvent _.event 'transition'
 
 		bindFormElement: (element, options) ->
 			defaults = 
@@ -504,7 +534,7 @@ class @Slider
 				transition: @options.transitionDuration
 				changeEvent: true
 				transitionEvent: true
-				step: if options?.normalized is false then @options.step else @options.step / (@options.max - @options.min)
+				step: if options?.normalized is false then @slider.options.step else @slider.options.step / (@slider.options.max - @slider.options.min)
 				updateFormElement: true
 
 			options = _.extend {}, defaults, options
@@ -513,16 +543,16 @@ class @Slider
 			pos = if p is undefined
 				@normalizedPosition
 			else
-				if options.normalized then p else (p - @options.min) / (@options.max - @options.min)
+				if options.normalized then p else (p - @slider.options.min) / (@slider.options.max - @slider.options.min)
 		
 			
 			if options.step 
 				step = if not options.normalized
-					options.step / (@options.max - @options.min)
+					options.step / (@slider.options.max - @slider.options.min)
 				else 
 					options.step
 			else
-				step = 1 / @knob.range()
+				step = 1 / @range()
 
 			pos = _.fixFPError _.roundTo pos, step
 
@@ -530,7 +560,7 @@ class @Slider
 			val = if options.normalized
 				(x) -> x 
 			else
-				(x) => @options.min + x * (@options.max - @options.min) 
+				(x) => @slider.options.min + x * (@slider.options.max - @slider.options.min) 
 
 			return _.fixFPError val pos if p is undefined
 
@@ -542,7 +572,7 @@ class @Slider
 					Slider.errors.valueInvalid
 				return
 
-			@normalizedPosition = pos
+			@label.position @normalizedPosition = pos
 
 			if options.transition
 				_.addClass @element, 'transition'
@@ -558,8 +588,6 @@ class @Slider
 
 			_.transform @element, @offset
 
-			@[comp]?.position? @normalizedPosition, options for comp, ctr of Slider.components
-
 			@formElement?.value = @value() if options.updateFormElement
 
 			if options.changeEvent
@@ -574,47 +602,9 @@ class @Slider
 			pos
 
 
-		
 
 
-
-	Label = class @Label extends Knob
-
-		@defaults: 
-			location: 'knob'
-			precision: 1
-			popup: true
-			format: (v, options) -> _.formatNumber v, decimalPlaces: options.precision
-
-		position: (p, o) ->
-			super p, o
-
-			formatted = @options.format? @slider.value(), @options
-
-			@value.innerText = 
-			@hiddenValue.innerText = 
-			@hiddenKnobValue.innerText = formatted
-
-		constructor: (@slider, options) ->
-			super @slider, _.extend {}, Label.defaults, options ? {}, interactive: false
-
-			_.addClass @element, 'label'
-
-			_.addClass @element, 'popup' if @options.popup
-
-			@element.appendChild @popup = _.div class: 'popup', [
-				@value = _.div class: 'value'
-				_.div class: 'arrow'
-			]
-
-			@element.appendChild @hiddenValue = _.div class: 'hidden value'
-
-			if @options.location is 'knob'
-				@slider.knob.element.appendChild @hiddenKnobValue = _.div class: 'hidden value'
-
-
-
-	Fill = class @Fill extends Component
+	Fill = class @Fill
 
 		@defaults: null
 
@@ -634,7 +624,7 @@ class @Slider
 			@slider.track.element.appendChild @element = _.div class: 'fill'
 
 
-	Debug = class @Debug extends Component
+	Debug = class @Debug
 
 		position: (p, options) ->
 			@element.innerText = _.formatObject
@@ -650,7 +640,6 @@ class @Slider
 		knob: (o) -> Knob if not o.value? or typeof o.value is 'number'
 		lower: (o) -> Knob if o.value?.length is 2
 		upper: (o) -> Knob if o.value?.length is 2
-		label: -> Label
 		fill: (o) -> Fill if o.fill?
 		debug: (o) -> Debug if o.debug
 
