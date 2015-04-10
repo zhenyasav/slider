@@ -314,7 +314,6 @@ class @Slider
 			@position @position(),
 				changeEvent: false
 				transitionEvent: false
-			console.log 'refreshed'
 
 		if @transitioning
 			_.listenOnce @element, 'transition', refresh
