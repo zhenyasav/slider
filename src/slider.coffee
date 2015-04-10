@@ -456,7 +456,6 @@ class @Slider
 
 			@bindFormElement @options.formElement if @options.formElement
 
-
 			start = null
 			startOffset = null
 
@@ -522,7 +521,7 @@ class @Slider
 			@formElement = element
 
 		value: (v, options={}) ->
-			@position v, _.extend options, normalized: false
+			@position v, _.extend {}, options, normalized: false
 
 		position: (p, options) ->
 			if _.isObject p 
@@ -538,13 +537,27 @@ class @Slider
 				updateFormElement: true
 
 			options = _.extend {}, defaults, options
-			
+
+
+			val = if options.normalized
+				(x) -> x 
+			else
+				(x) => @slider.options.min + x * (@slider.options.max - @slider.options.min) 
+
+			return _.fixFPError val @normalizedPosition if p is undefined
+
+			if not (val(0) <= p <= val(1))
+				@warn if options.normalized
+					Slider.errors.positionInvalid
+				else
+					Slider.errors.valueInvalid
+				return
+
 
 			pos = if p is undefined
 				@normalizedPosition
 			else
 				if options.normalized then p else (p - @slider.options.min) / (@slider.options.max - @slider.options.min)
-		
 			
 			if options.step 
 				step = if not options.normalized
@@ -557,21 +570,6 @@ class @Slider
 			pos = _.fixFPError _.roundTo pos, step
 
 
-			val = if options.normalized
-				(x) -> x 
-			else
-				(x) => @slider.options.min + x * (@slider.options.max - @slider.options.min) 
-
-			return _.fixFPError val pos if p is undefined
-
-	 
-			if not (val(0) <= p <= val(1))
-				@warn if options.normalized
-					Slider.errors.positionInvalid
-				else
-					Slider.errors.valueInvalid
-				return
-
 			@label.position @normalizedPosition = pos
 
 			if options.transition
@@ -580,11 +578,11 @@ class @Slider
 
 			@offset.set switch @slider.options.orientation
 				when 'horizontal'
-					x: @range() * p 
+					x: @range() * pos
 					y: 0
 				when 'vertical'
 					x: 0
-					y: @range() * p
+					y: @range() * pos
 
 			_.transform @element, @offset
 

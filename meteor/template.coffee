@@ -1,6 +1,6 @@
 Template.slider.rendered = ->
 
-	knownKeys = _.keys Slider.defaults
+	knownKeys = _.union _.keys(Slider.defaults), _.keys(Slider.components)
 	dataKeys = _.keys @data ? {}
 
 	eligible = _.intersection knownKeys, dataKeys
