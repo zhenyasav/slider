@@ -265,7 +265,8 @@ class @Slider
 		return null if element not instanceof Element
 		_.find Slider.instances, (i) -> i.element is element
 
-	warn: -> console?.warn?.apply console, arguments if @options.warnings
+	warn: -> 
+		console?.warn?.apply console, arguments if @options.warnings
 
 	constructor: (element, options) ->
 		@options = _.extend {}, Slider.defaults, options ? {}
@@ -289,7 +290,7 @@ class @Slider
 					if not ok?
 						e?.target?.value = @value()
 				else
-					@warn Slider.errors.valueInvalid
+					@warn Slider.errors.valueInvalid + " : " + val
 					e?.target?.value = @value()
 
 		@bindFormElement @options.formElement if @options.formElement
@@ -301,7 +302,7 @@ class @Slider
 			if ctor = generator @options
 				@[component] = new ctor @, @options[component]
 
-		@value @options.value
+		@value @options.value, changeEvent: false
 
 		Slider.polling.start() if @options.poll
 
@@ -383,12 +384,12 @@ class @Slider
 
 		return _.fixFPError val pos if p is undefined
 
- 
+
 		if not (val(0) <= p <= val(1))
 			@warn if options.normalized
-				Slider.errors.positionInvalid
+				Slider.errors.positionInvalid + " : " + p
 			else
-				Slider.errors.valueInvalid
+				Slider.errors.valueInvalid + " : " + p
 			return
 
 		@normalizedPosition = pos
