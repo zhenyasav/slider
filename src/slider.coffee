@@ -302,7 +302,9 @@ class @Slider
 			if ctor = generator @options
 				@[component] = new ctor @, @options[component]
 
-		@value @options.value, changeEvent: false
+		@value @options.value, 
+			changeEvent: false
+			transitionEvent: false
 
 		Slider.polling.start() if @options.poll
 
@@ -410,7 +412,7 @@ class @Slider
 				_.delay 17, =>
 					_.removeClass @element, 'transition'
 					@transitioning = false
-					@element.dispatchEvent _.event 'transition' if options.transitionEvent
+					@element.dispatchEvent _.event 'transition', value: @value() if options.transitionEvent
 		pos
 
 
@@ -525,7 +527,8 @@ class @Slider
 						else
 							@slider.element.dispatchEvent _.event 'change',
 								value: @slider.value()
-							@slider.element.dispatchEvent _.event 'transition'
+							@slider.element.dispatchEvent _.event 'transition',
+								value: @slider.value()
 
 
 
