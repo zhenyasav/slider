@@ -34,7 +34,7 @@ class @Slider
 
 		delay: (d, f) -> setTimeout f, d
 
-		throttle: (fun, d, ctx) ->
+		throttle: (d, fun, ctx) ->
 			tmout = null
 			-> 
 				if tmout
@@ -47,6 +47,8 @@ class @Slider
 		addClass: (e, c) -> e?.classList?.add c
 
 		removeClass: (e, c) -> e?.classList?.remove c
+
+		toggleClass: (e, c, t) -> e?.classList?[if t then 'add' else 'remove']? c
 
 		offset: (e) ->
 			return if e not instanceof Element
@@ -214,9 +216,9 @@ class @Slider
 
 		clone: -> new Vector @x, @y
 
-		subtract: (v) -> new Vector @x - v.x, @y - v.y
+		subtract: (v) -> new Vector @x - v?.x ? 0, @y - v?.y ? 0
 		
-		add: (v) -> new Vector @x + v.x, @y + v.y
+		add: (v) -> new Vector @x + v?.x ? 0, @y + v?.y ? 0
 		
 		magnitude: -> Math.sqrt @x**2 + @y**2
 		
@@ -308,15 +310,15 @@ class @Slider
 
 		Slider.polling.start() if @options.poll
 
-		window.addEventListener 'resize', _.throttle =>
+		window.addEventListener 'resize', _.throttle 600, =>
 			@refresh()
-		, 600
 
-	refresh: ->
+	refresh: (o) ->
 		refresh = =>
-			@position @position(),
+			@position @position(), _.extend 
 				changeEvent: false
 				transitionEvent: false
+			, o
 
 		if @transitioning
 			_.listenOnce @element, 'transition', refresh
@@ -420,6 +422,9 @@ class @Slider
 
 	Track = class @Track extends Component
 
+		@defaults:
+			dragEvents: true
+
 		size: -> switch @slider.options.orientation
 			when 'horizontal' then @element.offsetWidth
 			when 'vertical' then @element.offsetHeight
@@ -430,31 +435,62 @@ class @Slider
 			@slider.element.appendChild @element = _.div class:'track'
 
 			start = null
+			knobStartOffset = null
+
+			pixelPos = (pxOffset, options) => 
+				p = switch @slider.options.orientation
+					when 'horizontal' then pxOffset.x
+					when 'vertical' then pxOffset.y
+				p = _.clamp (p - @slider.knob.size() / 2) / @slider.knob.range(), 0, 1
+				@slider.position p, options
+
+
+			toggleClass = _.throttle 100, (cls, condition=true) => 
+				_.toggleClass @slider.element, cls, condition
+
 
 			@element.addEventListener _.startEvent, (e) =>
 				start = new Vector e
+				trackOffset = _.offset @element
+				pixelPos start.subtract(trackOffset), 
+					transition: false
+					step: false
+					changeEvent: false
+				knobStartOffset = @slider.knob.offset.clone()
+				_.removeClass @slider.element, 'transition'
+				toggleClass 'dragging', true
+				@slider.dragging = true
 
-			@element.addEventListener _.endEvent, (e) =>
-				if start?
-					pos = new Vector e
-					delta = pos.subtract(start).magnitude()
-					start = null
-					if delta < 5
+			window.addEventListener _.endEvent, (e) =>
+				toggleClass 'dragging', false
+				@slider.dragging = false
+				@slider.refresh if start? 
+					changeEvent: true
+					transitionEvent: true
+				start = null
 
-						trackOffset = _.offset @element
+			window.addEventListener _.moveEvent, (e) =>
+				if start
 
-						dest = switch @slider.options.orientation
-							when 'horizontal' then pos.x - trackOffset.x
-							when 'vertical' then pos.y - trackOffset.y
+					orientOffset = switch @slider.options.orientation
+						when 'horizontal' then x: @slider.knob.size() / 2
+						when 'vertical' then y: @slider.knob.size() / 2
 
-						@slider.position _.clamp (dest - @slider.knob.size() / 2) / @slider.knob.range(), 0, 1
+					pixelPos knobStartOffset.add(new Vector(e).subtract start).add(orientOffset), 
+						transition: false
+						step: false
+						changeEvent: false
+
+					if @options.dragEvents
+						@slider.element.dispatchEvent _.event 'drag',
+							position: @slider.position()
+							value: @slider.value()
 
 
 
 	Knob = class @Knob extends Component
 
 		@defaults:
-			interactive: true
 			dragEvents: true
 
 		size: -> switch @slider.options.orientation 
@@ -482,55 +518,6 @@ class @Slider
 
 			@offset = new Vector 0, 0
 
-			if @options.interactive
-
-				start = null
-				startOffset = null
-
-				@element.addEventListener _.startEvent, (e) => 
-					start = new Vector e
-					startOffset = @offset.clone()
-					_.removeClass @slider.element, 'transition'
-					_.addClass @slider.element, 'dragging'
-					@slider.dragging = true
-
-				window.addEventListener _.moveEvent, (e) =>
-					if start?
-						e.preventDefault()
-						pos = new Vector e
-						offset = pos.subtract start
-						offset = offset.add startOffset
-
-						@slider.position switch @slider.options.orientation
-							when 'horizontal'
-								_.clamp offset.x / @range(), 0, 1
-							when 'vertical'
-								_.clamp offset.y / @range(), 0, 1
-
-						, 
-							transition: false
-							step: false
-							changeEvent: false
-
-						if @options.dragEvents
-							@slider.element.dispatchEvent _.event 'drag',
-								position: @slider.position()
-								value: @slider.value()
-
-				window.addEventListener _.endEvent, (e) =>
-					if start?
-						start = null
-						_.removeClass @slider.element, 'dragging'
-						@slider.dragging = false
-						if @slider.options.step?
-							@slider.position @slider.position()
-						else
-							@slider.element.dispatchEvent _.event 'change',
-								value: @slider.value()
-							@slider.element.dispatchEvent _.event 'transition',
-								value: @slider.value()
-
-
 
 	Label = class @Label extends Knob
 
@@ -550,7 +537,7 @@ class @Slider
 			@hiddenKnobValue.innerText = formatted
 
 		constructor: (@slider, options) ->
-			super @slider, _.extend {}, Label.defaults, options ? {}, interactive: false
+			super @slider, _.extend {}, Label.defaults, options ? {}
 
 			_.addClass @element, 'label'
 
@@ -579,8 +566,6 @@ class @Slider
 			styleProp = if @slider.options.orientation is 'horizontal' then 'width' else 'height'
 			
 			@element.style[styleProp] = p * @slider.knob.range() + @slider.knob.size() / 2 + 'px'
-			
-			
 
 		constructor: (@slider, options) ->
 			@options = options ? Fill.defaults

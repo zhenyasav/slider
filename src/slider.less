@@ -67,12 +67,11 @@
 	.fill {
 		position: absolute;
 		margin: @knobMargin;
-		.transition(all @transition ease-in-out);
 	}
 
-	&.dragging {
+	&.transition {
 		.fill {
-			.transition(none);
+			.transition(all @transition ease-in-out);
 		}
 	}
 
