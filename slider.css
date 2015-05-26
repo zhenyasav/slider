@@ -109,9 +109,14 @@
   display: inline-block;
   margin: 2px;
   position: absolute;
+  cursor: pointer;
   left: 0;
   top: 0;
-  cursor: pointer;
+  -webkit-pointer-events: none;
+  -moz-pointer-events: none;
+  -ms-pointer-events: none;
+  -o-pointer-events: none;
+  pointer-events: none;
 }
 .slider .knob:active {
   cursor: pointer;

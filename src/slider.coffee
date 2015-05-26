@@ -518,6 +518,8 @@ class @Slider
 
 			@offset = new Vector 0, 0
 
+			@
+
 
 	Label = class @Label extends Knob
 

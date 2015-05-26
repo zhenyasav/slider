@@ -136,9 +136,10 @@
 		display: inline-block;
 		margin: @knobMargin;
 		position: absolute;
+		cursor: pointer;
 		left: 0;
 		top: 0;
-		cursor: pointer;
+		.pointer-events(none);
 
 		&:active {
 			cursor: pointer;

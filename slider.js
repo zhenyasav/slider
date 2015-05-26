@@ -749,6 +749,7 @@
           "class": 'knob'
         }));
         this.offset = new Vector(0, 0);
+        this;
       }
 
       return Knob;
