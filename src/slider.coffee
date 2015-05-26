@@ -462,12 +462,14 @@ class @Slider
 				@slider.dragging = true
 
 			window.addEventListener _.endEvent, (e) =>
-				toggleClass 'dragging', false
-				@slider.dragging = false
-				@slider.refresh if start? 
-					changeEvent: true
-					transitionEvent: true
-				start = null
+				if start? 
+					toggleClass 'dragging', false
+					@slider.dragging = false
+					@slider.refresh
+						changeEvent: true
+						transitionEvent: true
+
+					start = null
 
 			window.addEventListener _.moveEvent, (e) =>
 				if start

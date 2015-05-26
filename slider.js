@@ -658,13 +658,15 @@
         })(this));
         window.addEventListener(_.endEvent, (function(_this) {
           return function(e) {
-            toggleClass('dragging', false);
-            _this.slider.dragging = false;
-            _this.slider.refresh(start != null ? {
-              changeEvent: true,
-              transitionEvent: true
-            } : void 0);
-            return start = null;
+            if (start != null) {
+              toggleClass('dragging', false);
+              _this.slider.dragging = false;
+              _this.slider.refresh({
+                changeEvent: true,
+                transitionEvent: true
+              });
+              return start = null;
+            }
           };
         })(this));
         window.addEventListener(_.moveEvent, (function(_this) {

@@ -15,8 +15,4 @@ Template.slider.rendered = ->
 				@slider.value n,
 					changeEvent: false
 					transitionEvent: false
-
-			if @slider.transitioning
-				Slider._.listenOnce @slider.element, 'transition', setValue
-			else
-				setValue()
+			setValue()
