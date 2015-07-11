@@ -53,7 +53,7 @@ class @Slider
 
 		delay: (d, f) -> setTimeout f, d
 
-		throttle: (fun, d, ctx) ->
+		throttle: (d, fun, ctx) ->
 			tmout = null
 			-> 
 				if tmout
@@ -66,6 +66,8 @@ class @Slider
 		addClass: (e, c) -> e?.classList?.add c
 
 		removeClass: (e, c) -> e?.classList?.remove c
+
+		toggleClass: (e, c, t) -> e?.classList?[if t then 'add' else 'remove']? c
 
 		offset: (e) ->
 			return if e not instanceof Element
@@ -233,9 +235,9 @@ class @Slider
 
 		clone: -> new Vector @x, @y
 
-		subtract: (v) -> new Vector @x - v.x, @y - v.y
+		subtract: (v) -> new Vector @x - v?.x ? 0, @y - v?.y ? 0
 		
-		add: (v) -> new Vector @x + v.x, @y + v.y
+		add: (v) -> new Vector @x + v?.x ? 0, @y + v?.y ? 0
 		
 		magnitude: -> Math.sqrt @x**2 + @y**2
 		
@@ -284,7 +286,8 @@ class @Slider
 		return null if element not instanceof Element
 		_.find Slider.instances, (i) -> i.element is element
 
-	warn: -> console?.warn?.apply console, arguments if @options.warnings
+	warn: -> 
+		console?.warn?.apply console, arguments if @options.warnings
 
 	constructor: (element, options) ->
 		@options = _.extend {}, Slider.defaults, options ? {}
@@ -306,16 +309,17 @@ class @Slider
 			if typeof (ctor = generator?.call? @, @options) is 'function'
 				@[component] = new ctor @, @options[component]
 
-		@value @options.value
+		@value @options.value, 
+			changeEvent: false
+			transitionEvent: false
 
 		Slider.polling.start() if @options.poll
 
-		window.addEventListener 'resize', _.throttle =>
+		window.addEventListener 'resize', _.throttle 600, =>
 			@refresh()
-		, 600
-
 	
 	knobs: -> @[name] for name, comp of Slider.components when @[name] instanceof Knob
+
 
 	refresh: -> @knobs()?.map (knob) -> knob.refresh()
 
@@ -325,6 +329,7 @@ class @Slider
 
 	value: (v, options={}) ->
 		@position v, _.extend options, normalized: false
+
 
 	position: (p, o) ->
 		if @isSingleValue()
@@ -338,8 +343,10 @@ class @Slider
 			]
 
 
-
 	Track = class @Track
+
+		@defaults:
+			dragEvents: true
 
 		size: -> switch @slider.options.orientation
 			when 'horizontal' then @element.offsetWidth
@@ -351,30 +358,61 @@ class @Slider
 			@slider.element.appendChild @element = _.div class:'track'
 
 			start = null
+			knobStartOffset = null
+
+			pixelPos = (pxOffset, options) => 
+				p = switch @slider.options.orientation
+					when 'horizontal' then pxOffset.x
+					when 'vertical' then pxOffset.y
+				p = _.clamp (p - @slider.knob.size() / 2) / @slider.knob.range(), 0, 1
+				@slider.position p, options
+
+
+			toggleClass = _.throttle 100, (cls, condition=true) => 
+				_.toggleClass @slider.element, cls, condition
+
 
 			@element.addEventListener _.startEvent, (e) =>
 				start = new Vector e
+				trackOffset = _.offset @element
+				pixelPos start.subtract(trackOffset), 
+					transition: false
+					step: false
+					changeEvent: false
+				knobStartOffset = @slider.knob.offset.clone()
+				_.removeClass @slider.element, 'transition'
+				toggleClass 'dragging', true
+				@slider.dragging = true
 
-			@element.addEventListener _.endEvent, (e) =>
-				if start?
-					pos = new Vector e
-					delta = pos.subtract(start).magnitude()
+			window.addEventListener _.endEvent, (e) =>
+				if start? 
+					toggleClass 'dragging', false
+					@slider.dragging = false
+					@slider.refresh
+						changeEvent: true
+						transitionEvent: true
+
 					start = null
-					if delta < 5
 
-						trackOffset = _.offset @element
+			window.addEventListener _.moveEvent, (e) =>
+				if start
 
-						dest = switch @slider.options.orientation
-							when 'horizontal' then pos.x - trackOffset.x
-							when 'vertical' then pos.y - trackOffset.y
+					orientOffset = switch @slider.options.orientation
+						when 'horizontal' then x: @slider.knob.size() / 2
+						when 'vertical' then y: @slider.knob.size() / 2
 
-						knobs = @slider.knobs()
+					pixelPos knobStartOffset.add(new Vector(e).subtract start).add(orientOffset), 
+						transition: false
+						step: false
+						changeEvent: false
 
-						dest = _.clamp (dest - knobs?[0]?.size() / 2) / knobs?[0]?.range(), 0, 1
+					# knobs = @slider.knobs()
 
-						targetKnob = _.min knobs, (k) -> Math.abs k.position() - dest
+					# dest = _.clamp (dest - knobs?[0]?.size() / 2) / knobs?[0]?.range(), 0, 1
 
-						targetKnob?.position? dest
+					# targetKnob = _.min knobs, (k) -> Math.abs k.position() - dest
+
+					# targetKnob?.position? dest
 
 
 
@@ -412,7 +450,6 @@ class @Slider
 
 
 		@defaults:
-			interactive: true
 			dragEvents: true
 			formElement: null
 
@@ -538,11 +575,11 @@ class @Slider
 
 			options = _.extend {}, defaults, options
 
-
 			val = if options.normalized
 				(x) -> x 
 			else
 				(x) => @slider.options.min + x * (@slider.options.max - @slider.options.min) 
+
 
 			return _.fixFPError val @normalizedPosition if p is undefined
 

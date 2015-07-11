@@ -72,7 +72,7 @@
       delay: function(d, f) {
         return setTimeout(f, d);
       },
-      throttle: function(fun, d, ctx) {
+      throttle: function(d, fun, ctx) {
         var tmout;
         tmout = null;
         return function() {
@@ -101,6 +101,10 @@
       removeClass: function(e, c) {
         var ref;
         return e != null ? (ref = e.classList) != null ? ref.remove(c) : void 0 : void 0;
+      },
+      toggleClass: function(e, c, t) {
+        var name1, ref;
+        return e != null ? (ref = e.classList) != null ? typeof ref[name1 = t ? 'add' : 'remove'] === "function" ? ref[name1](c) : void 0 : void 0 : void 0;
       },
       offset: function(e) {
         var offset, parent;
@@ -311,11 +315,13 @@
       };
 
       Vector.prototype.subtract = function(v) {
-        return new Vector(this.x - v.x, this.y - v.y);
+        var ref1, ref2;
+        return new Vector((ref1 = this.x - (v != null ? v.x : void 0)) != null ? ref1 : 0, (ref2 = this.y - (v != null ? v.y : void 0)) != null ? ref2 : 0);
       };
 
       Vector.prototype.add = function(v) {
-        return new Vector(this.x + v.x, this.y + v.y);
+        var ref1, ref2;
+        return new Vector((ref1 = this.x + (v != null ? v.x : void 0)) != null ? ref1 : 0, (ref2 = this.y + (v != null ? v.y : void 0)) != null ? ref2 : 0);
       };
 
       Vector.prototype.magnitude = function() {
@@ -422,7 +428,7 @@
                 return e != null ? (ref3 = e.target) != null ? ref3.value = _this.value() : void 0 : void 0;
               }
             } else {
-              _this.warn(Slider.errors.valueInvalid);
+              _this.warn(Slider.errors.valueInvalid + " : " + val);
               return e != null ? (ref4 = e.target) != null ? ref4.value = _this.value() : void 0 : void 0;
             }
           }
@@ -440,26 +446,28 @@
           this[component] = new ctor(this, this.options[component]);
         }
       }
-      this.value(this.options.value);
+      this.value(this.options.value, {
+        changeEvent: false,
+        transitionEvent: false
+      });
       if (this.options.poll) {
         Slider.polling.start();
       }
-      window.addEventListener('resize', _.throttle((function(_this) {
+      window.addEventListener('resize', _.throttle(600, (function(_this) {
         return function() {
           return _this.refresh();
         };
-      })(this), 600));
+      })(this)));
     }
 
-    Slider.prototype.refresh = function() {
+    Slider.prototype.refresh = function(o) {
       var refresh;
       refresh = (function(_this) {
         return function() {
-          _this.position(_this.position(), {
+          return _this.position(_this.position(), _.extend({
             changeEvent: false,
             transitionEvent: false
-          });
-          return console.log('refreshed');
+          }, o));
         };
       })(this);
       if (this.transitioning) {
@@ -532,7 +540,7 @@
         return _.fixFPError(val(pos));
       }
       if (!((val(0) <= p && p <= val(1)))) {
-        this.warn(options.normalized ? Slider.errors.positionInvalid : Slider.errors.valueInvalid);
+        this.warn(options.normalized ? Slider.errors.positionInvalid + " : " + p : Slider.errors.valueInvalid + " : " + p);
         return;
       }
       this.normalizedPosition = pos;
@@ -566,7 +574,9 @@
               _.removeClass(_this.element, 'transition');
               _this.transitioning = false;
               if (options.transitionEvent) {
-                return _this.element.dispatchEvent(_.event('transition'));
+                return _this.element.dispatchEvent(_.event('transition', {
+                  value: _this.value()
+                }));
               }
             });
           };
@@ -585,6 +595,10 @@
     Track = Slider.Track = (function(superClass) {
       extend(Track, superClass);
 
+      Track.defaults = {
+        dragEvents: true
+      };
+
       Track.prototype.size = function() {
         switch (this.slider.options.orientation) {
           case 'horizontal':
@@ -595,36 +609,92 @@
       };
 
       function Track(slider1, options) {
-        var ref1, start;
+        var knobStartOffset, pixelPos, ref1, start, toggleClass;
         this.slider = slider1;
         this.options = _.extend({}, (ref1 = Track.defaults) != null ? ref1 : {}, options != null ? options : {});
         this.slider.element.appendChild(this.element = _.div({
           "class": 'track'
         }));
         start = null;
-        this.element.addEventListener(_.startEvent, (function(_this) {
-          return function(e) {
-            return start = new Vector(e);
+        knobStartOffset = null;
+        pixelPos = (function(_this) {
+          return function(pxOffset, options) {
+            var p;
+            p = (function() {
+              switch (this.slider.options.orientation) {
+                case 'horizontal':
+                  return pxOffset.x;
+                case 'vertical':
+                  return pxOffset.y;
+              }
+            }).call(_this);
+            p = _.clamp((p - _this.slider.knob.size() / 2) / _this.slider.knob.range(), 0, 1);
+            return _this.slider.position(p, options);
+          };
+        })(this);
+        toggleClass = _.throttle(100, (function(_this) {
+          return function(cls, condition) {
+            if (condition == null) {
+              condition = true;
+            }
+            return _.toggleClass(_this.slider.element, cls, condition);
           };
         })(this));
-        this.element.addEventListener(_.endEvent, (function(_this) {
+        this.element.addEventListener(_.startEvent, (function(_this) {
           return function(e) {
-            var delta, dest, pos, trackOffset;
+            var trackOffset;
+            start = new Vector(e);
+            trackOffset = _.offset(_this.element);
+            pixelPos(start.subtract(trackOffset), {
+              transition: false,
+              step: false,
+              changeEvent: false
+            });
+            knobStartOffset = _this.slider.knob.offset.clone();
+            _.removeClass(_this.slider.element, 'transition');
+            toggleClass('dragging', true);
+            return _this.slider.dragging = true;
+          };
+        })(this));
+        window.addEventListener(_.endEvent, (function(_this) {
+          return function(e) {
             if (start != null) {
-              pos = new Vector(e);
-              delta = pos.subtract(start).magnitude();
-              start = null;
-              if (delta < 5) {
-                trackOffset = _.offset(_this.element);
-                dest = (function() {
-                  switch (this.slider.options.orientation) {
-                    case 'horizontal':
-                      return pos.x - trackOffset.x;
-                    case 'vertical':
-                      return pos.y - trackOffset.y;
-                  }
-                }).call(_this);
-                return _this.slider.position(_.clamp((dest - _this.slider.knob.size() / 2) / _this.slider.knob.range(), 0, 1));
+              toggleClass('dragging', false);
+              _this.slider.dragging = false;
+              _this.slider.refresh({
+                changeEvent: true,
+                transitionEvent: true
+              });
+              return start = null;
+            }
+          };
+        })(this));
+        window.addEventListener(_.moveEvent, (function(_this) {
+          return function(e) {
+            var orientOffset;
+            if (start) {
+              orientOffset = (function() {
+                switch (this.slider.options.orientation) {
+                  case 'horizontal':
+                    return {
+                      x: this.slider.knob.size() / 2
+                    };
+                  case 'vertical':
+                    return {
+                      y: this.slider.knob.size() / 2
+                    };
+                }
+              }).call(_this);
+              pixelPos(knobStartOffset.add(new Vector(e).subtract(start)).add(orientOffset), {
+                transition: false,
+                step: false,
+                changeEvent: false
+              });
+              if (_this.options.dragEvents) {
+                return _this.slider.element.dispatchEvent(_.event('drag', {
+                  position: _this.slider.position(),
+                  value: _this.slider.value()
+                }));
               }
             }
           };
@@ -639,7 +709,6 @@
       extend(Knob, superClass);
 
       Knob.defaults = {
-        interactive: true,
         dragEvents: true
       };
 
@@ -675,72 +744,14 @@
       };
 
       function Knob(slider1, options) {
-        var ref1, start, startOffset;
+        var ref1;
         this.slider = slider1;
         this.options = _.extend({}, (ref1 = Knob.defaults) != null ? ref1 : {}, options != null ? options : {});
         this.slider.element.appendChild(this.element = _.div({
           "class": 'knob'
         }));
         this.offset = new Vector(0, 0);
-        if (this.options.interactive) {
-          start = null;
-          startOffset = null;
-          this.element.addEventListener(_.startEvent, (function(_this) {
-            return function(e) {
-              start = new Vector(e);
-              startOffset = _this.offset.clone();
-              _.removeClass(_this.slider.element, 'transition');
-              _.addClass(_this.slider.element, 'dragging');
-              return _this.slider.dragging = true;
-            };
-          })(this));
-          window.addEventListener(_.moveEvent, (function(_this) {
-            return function(e) {
-              var offset, pos;
-              if (start != null) {
-                e.preventDefault();
-                pos = new Vector(e);
-                offset = pos.subtract(start);
-                offset = offset.add(startOffset);
-                _this.slider.position((function() {
-                  switch (this.slider.options.orientation) {
-                    case 'horizontal':
-                      return _.clamp(offset.x / this.range(), 0, 1);
-                    case 'vertical':
-                      return _.clamp(offset.y / this.range(), 0, 1);
-                  }
-                }).call(_this), {
-                  transition: false,
-                  step: false,
-                  changeEvent: false
-                });
-                if (_this.options.dragEvents) {
-                  return _this.slider.element.dispatchEvent(_.event('drag', {
-                    position: _this.slider.position(),
-                    value: _this.slider.value()
-                  }));
-                }
-              }
-            };
-          })(this));
-          window.addEventListener(_.endEvent, (function(_this) {
-            return function(e) {
-              if (start != null) {
-                start = null;
-                _.removeClass(_this.slider.element, 'dragging');
-                _this.slider.dragging = false;
-                if (_this.slider.options.step != null) {
-                  return _this.slider.position(_this.slider.position());
-                } else {
-                  _this.slider.element.dispatchEvent(_.event('change', {
-                    value: _this.slider.value()
-                  }));
-                  return _this.slider.element.dispatchEvent(_.event('transition'));
-                }
-              }
-            };
-          })(this));
-        }
+        this;
       }
 
       return Knob;
@@ -770,9 +781,7 @@
 
       function Label(slider1, options) {
         this.slider = slider1;
-        Label.__super__.constructor.call(this, this.slider, _.extend({}, Label.defaults, options != null ? options : {}, {
-          interactive: false
-        }));
+        Label.__super__.constructor.call(this, this.slider, _.extend({}, Label.defaults, options != null ? options : {}));
         _.addClass(this.element, 'label');
         if (this.options.popup) {
           _.addClass(this.element, 'popup');

@@ -11,4 +11,8 @@ Template.slider.rendered = ->
 		data = Template.currentData()
 		n = Number data?.value
 		if n? and isFinite(n) and not isNaN(n)
-			@slider.value n
+			setValue = =>
+				@slider.value n,
+					changeEvent: false
+					transitionEvent: false
+			setValue()

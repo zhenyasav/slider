@@ -1,6 +1,6 @@
 Package.describe({
 	name: 'zhenya:slider',
-	version: '0.0.3',
+	version: '0.0.6',
 	summary: 'Mobile-first, smooth slider component',
 	git: 'https://github.com/zhenyasav/slider',
 	documentation: 'README.md'
