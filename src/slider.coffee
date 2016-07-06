@@ -315,11 +315,10 @@ class @Slider
 
 		Slider.polling.start() if @options.poll
 
-		window.addEventListener 'resize', _.throttle 600, =>
-			@refresh()
+		window.addEventListener 'resize', _.throttle 600, => @refresh()
+
 	
 	knobs: -> @[name] for name, comp of Slider.components when @[name] instanceof Knob
-
 
 	refresh: -> @knobs()?.map (knob) -> knob.refresh()
 
@@ -329,7 +328,6 @@ class @Slider
 
 	value: (v, options={}) ->
 		@position v, _.extend options, normalized: false
-
 
 	position: (p, o) ->
 		if @isSingleValue()
@@ -341,6 +339,7 @@ class @Slider
 				@lower.position p[0], o
 				@upper.position p[1], o
 			]
+
 
 
 	Track = class @Track
@@ -360,12 +359,12 @@ class @Slider
 			start = null
 			knobStartOffset = null
 
-			pixelPos = (pxOffset, options) => 
-				p = switch @slider.options.orientation
-					when 'horizontal' then pxOffset.x
-					when 'vertical' then pxOffset.y
-				p = _.clamp (p - @slider.knob.size() / 2) / @slider.knob.range(), 0, 1
-				@slider.position p, options
+			read = (offset) => switch @slider.options.orientation
+				when 'horizontal' then offset.x
+				when 'vertical' then offset.y
+
+			norm = (p) => 
+				_.clamp (p - @slider.knob.size() / 2) / @slider.knob.range(), 0, 1
 
 
 			toggleClass = _.throttle 100, (cls, condition=true) => 
@@ -375,7 +374,8 @@ class @Slider
 			@element.addEventListener _.startEvent, (e) =>
 				start = new Vector e
 				trackOffset = _.offset @element
-				pixelPos start.subtract(trackOffset), 
+				pos = norm read start.subtract trackOffset
+				@slider.position pos, 
 					transition: false
 					step: false
 					changeEvent: false
@@ -401,7 +401,9 @@ class @Slider
 						when 'horizontal' then x: @slider.knob.size() / 2
 						when 'vertical' then y: @slider.knob.size() / 2
 
-					pixelPos knobStartOffset.add(new Vector(e).subtract start).add(orientOffset), 
+					pos = norm read knobStartOffset.add(new Vector(e).subtract start).add orientOffset
+
+					@slider.position pos, 
 						transition: false
 						step: false
 						changeEvent: false
